@@ -4,12 +4,12 @@ services:
       target: test
     command: pytest
     volumes:
-      - ./web:/src
-    working_dir: /src
+      - ./services/web:/app
+    working_dir: /app
     environment:
       - MODE=test
       - DB_HOST=postgres
-      - PYTHONPATH=/src
+      - PYTHONPATH=.
     env_file:
       - .test.env
     depends_on:

@@ -1,7 +1,7 @@
 services:
   web:
     build:
-      context: web
+      context: services/web
       dockerfile: Dockerfile
       target: prod
     environment:
@@ -11,19 +11,19 @@ services:
     command: python3 start.py
     env_file:
       - .env
-    #      logging:
-    #        driver: fluentd
-    #        options:
-    #          fluentd-address: 0.0.0.0:24224
-    #          fluentd-sub-second-precision: "true"
-    #          tag: web.logs
-    #        fluentd:
     depends_on:
       - postgres
+#      logging:
+#        driver: fluentd
+#        options:
+#          fluentd-address: 0.0.0.0:24224
+#          fluentd-sub-second-precision: "true"
+#          tag: web.logs
+#        fluentd:
 
   auth:
     build:
-      context: auth
+      context: services/auth
       dockerfile: Dockerfile
       target: prod
     environment:
@@ -33,19 +33,19 @@ services:
     command: python3 start.py
     env_file:
       - .env
-    #      logging:
-    #        driver: fluentd
-    #        options:
-    #          fluentd-address: 0.0.0.0:24224
-    #          fluentd-sub-second-precision: "true"
-    #          tag: web.logs
-    #        fluentd:
     depends_on:
       - postgres
+#    logging:
+#      driver: fluentd
+#      options:
+#        fluentd-address: 0.0.0.0:24224
+#        fluentd-sub-second-precision: "true"
+#        tag: web.logs
+#      fluentd:
 
   admin:
     build:
-      context: admin
+      context: services/admin
       dockerfile: Dockerfile
       target: prod
     environment:
@@ -55,15 +55,15 @@ services:
     command: python3 start.py
     env_file:
       - .env
-    #      logging:
-    #        driver: fluentd
-    #        options:
-    #          fluentd-address: 0.0.0.0:24224
-    #          fluentd-sub-second-precision: "true"
-    #          tag: web.logs
-    #        fluentd:
     depends_on:
       - postgres
+#      logging:
+#        driver: fluentd
+#        options:
+#          fluentd-address: 0.0.0.0:24224
+#          fluentd-sub-second-precision: "true"
+#          tag: web.logs
+#        fluentd:
 
   postgres:
     image: postgres:16.3
@@ -73,8 +73,8 @@ services:
       TZ: Europe/Moscow/
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - ./postgres/data:/var/lib/postgresql/data
-      - ./postgres/scripts:/var/lib/postgresql/scripts
+      - ./infra/postgres/data:/var/lib/postgresql/data
+      - ./infra/postgres/scripts:/var/lib/postgresql/scripts
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.1
@@ -87,9 +87,8 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - ./elasticsearch/data:/usr/share/elasticsearch/data
+      - ./infra/elasticsearch/data:/usr/share/elasticsearch/data
     healthcheck:
-      # Check whether service is ready
       test: [ "CMD", "curl", "-f", "http://localhost:9200/_cluster/health" ]
       interval: 10s
       retries: 5
@@ -108,13 +107,13 @@ services:
 
   fluentd:
     build:
-      context: fluentd
+      context: infra/fluentd
       dockerfile: Dockerfile
     environment:
       - TZ=Europe/Moscow
     #    volumes:
-    #      - ./fluentd/fluentd.conf:/fluentd/etc/fluent.conf
-    #      - ./logs:/src/logs  # Fluentd будет читать логи
+    #      - ./infra/fluentd/fluentd.conf:/fluentd/etc/fluent.conf
+    #      - ./infra/logs:/src/logs
     ports:
       - "24224:24224" # TCP input
       - "24224:24224/udp" # UDP input

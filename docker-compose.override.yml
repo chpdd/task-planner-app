@@ -1,7 +1,7 @@
 services:
   web:
     volumes:
-      - ./web:/app
+      - ./services/web:/app
     working_dir: /app
     environment:
       - MODE=dev
@@ -9,12 +9,12 @@ services:
 
   auth:
     volumes:
-      - ./auth:/app
+      - ./services/auth:/app
     environment:
       - MODE=dev
 
   admin:
     volumes:
-      - ./admin:/app
+      - ./services/admin:/app
     environment:
       - MODE=dev
