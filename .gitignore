@@ -1,7 +1,9 @@
-.gitignore
-.env
 .idea
-console_app/data_files
-TODO
+
+.env
+.test.env
+
 postgres
 elasticsearch
+
+TODO
