@@ -27,12 +27,6 @@ help: ## Show this help message
 full:
 	$(DC_DEV) up -d
 
-web: ## Run development environment
-	$(DC_DEV) up web -d
-
-web-build:
-	$(DC_DEV) up web -d --build
-
 planner:
 	$(DC_DEV) up planner -d
 

@@ -1,13 +1,13 @@
 services:
-  web:
+  planner:
     build:
-      context: services/web
+      context: services/planner
       dockerfile: Dockerfile
       target: prod
     environment:
       - TZ=Europe/Moscow
     ports:
-      - "8100:8100"
+      - "8000:8000"
     command: python3 start.py
     env_file:
       - .env
@@ -44,21 +44,6 @@ services:
     depends_on:
       - postgres
 
-  planner:
-    build:
-      context: services/planner
-      dockerfile: Dockerfile
-      target: prod
-    environment:
-      - TZ=Europe/Moscow
-    ports:
-      - "8003:8003"
-    command: python3 start.py
-    env_file:
-      - .env
-    depends_on:
-      - postgres
-
   postgres:
     image: postgres:16.3
     ports:
@@ -80,7 +65,6 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - web
       - auth
       - admin
       - planner
