@@ -1,4 +1,4 @@
-from fastapi import Depends, APIRouter
+from fastapi import APIRouter, Depends, HTTPException, status
 
 
 from src.core.dependencies import db_dep, get_user_id
@@ -24,7 +24,10 @@ async def create_task(task_schema: schemas.TaskSchema, session: db_dep,
 
 @router.get("/{task_id}")
 async def get_task(task_id: int, session: db_dep, user_id: int = Depends(get_user_id)) -> schemas.TaskSchema:
-    return await task_crud.schema_owner_get(session, task_id, user_id)
+    task_schema = await task_crud.schema_owner_get(session, task_id, user_id)
+    if task_schema is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task with whis id not found")
+    return task_schema
 
 
 @router.patch("/{task_id}")

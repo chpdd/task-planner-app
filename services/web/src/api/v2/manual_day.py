@@ -1,4 +1,4 @@
-from fastapi import Depends, APIRouter
+from fastapi import Depends, APIRouter, HTTPException, status
 
 from src.core.dependencies import db_dep, get_user_id
 
@@ -25,4 +25,7 @@ async def create_manual_day(manual_day_schema: schemas.CreateManualDaySchema, se
 @router.get("/{manual_day_id}")
 async def get_manual_day(manual_day_id: int, session: db_dep,
                          user_id: int = Depends(get_user_id)) -> schemas.ManualDaySchema:
-    return await manual_day_crud.schema_owner_get(session, manual_day_id, user_id)
+    manual_day_schema = await manual_day_crud.schema_owner_get(session, manual_day_id, user_id)
+    if manual_day_schema is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Manual day with whis id not found")
+    return manual_day_schema

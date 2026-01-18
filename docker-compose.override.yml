@@ -2,19 +2,27 @@ services:
   web:
     volumes:
       - ./services/web:/app
+      - /app/.venv
     working_dir: /app
     environment:
       - MODE=dev
-      - PYTHONPATH=/src
+      - PYTHONPATH=/app
 
   auth:
     volumes:
       - ./services/auth:/app
+      - /app/.venv
+    working_dir: /app
     environment:
       - MODE=dev
+      - PYTHONPATH=/app
 
   admin:
     volumes:
       - ./services/admin:/app
+      - /app/.venv
+    working_dir: /app
     environment:
       - MODE=dev
+      - PYTHONPATH=/app
+

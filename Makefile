@@ -27,11 +27,14 @@ help: ## Show this help message
 full:
 	$(DC_DEV) up -d
 
-dev: ## Run development environment
+web: ## Run development environment
 	$(DC_DEV) up web -d
 
-dev-build:
+web-build:
 	$(DC_DEV) up web -d --build
+
+planner:
+	$(DC_DEV) up planner -d
 
 prod: ## Run production verification
 	$(DC_PROD) up -d

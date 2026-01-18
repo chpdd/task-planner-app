@@ -1,16 +1,17 @@
 import jwt
 import datetime as dt
-import fastapi.security
 
 from passlib.context import CryptContext
 from pydantic import Field
 from typing import Annotated
+from fastapi import Request
+from fastapi.security import OAuth2PasswordBearer
 
 from src.core.config import BaseSchema, settings
 
-oauth2_scheme = fastapi.security.OAuth2PasswordBearer(tokenUrl="/api/v2/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/web/v2/auth/login")
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+passwrod_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class Header(BaseSchema):
@@ -21,30 +22,57 @@ class Header(BaseSchema):
 class FullPayload(BaseSchema):
     sub: Annotated[str | None, Field(default=None)]
     exp: Annotated[int | None, Field(default=None)]
+    type: str = "access"
 
 
 def hash_password(password):
-    return pwd_context.hash(password)
+    return passwrod_context.hash(password)
 
 
 def verify_password(password, hashed_password):
-    return pwd_context.verify(password, hashed_password)
+    return passwrod_context.verify(password, hashed_password)
 
 
-def create_access_token(data: FullPayload | dict, expires_delta_minutes: int = 120):
-    match data:
-        case FullPayload(sub=sub) | {"sub": sub}:
-            exp = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=expires_delta_minutes)).timestamp()
-        case _:
-            raise TypeError("Payload must be of type dict with filled data or Payload with filled data")
-    full_payload = FullPayload(sub=sub, exp=int(exp))
+def create_access_token(sub: str, expires_delta_minutes: int | None = None):
+    if expires_delta_minutes is None:
+        expires_delta_minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    
+    exp = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=expires_delta_minutes)).timestamp()
+    full_payload = FullPayload(sub=sub, exp=int(exp), type="access")
+    
     access_token = jwt.encode(payload=full_payload.model_dump(), key=settings.JWT_SECRET_KEY,
-                              algorithm=settings.JWT_ALGORITHM)
-
-    result = {"access_token": access_token, "token_type": "bearer"}
-    return result
+                               algorithm=settings.JWT_ALGORITHM)
+    return access_token
 
 
-def decode_access_token(token):
+def create_refresh_token(sub: str, expires_delta_days: int | None = None):
+    if expires_delta_days is None:
+        expires_delta_days = settings.REFRESH_TOKEN_EXPIRE_DAYS
+    
+    exp = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=expires_delta_days)).timestamp()
+    full_payload = FullPayload(sub=sub, exp=int(exp), type="refresh")
+    
+    refresh_token = jwt.encode(payload=full_payload.model_dump(), key=settings.JWT_SECRET_KEY,
+                                algorithm=settings.JWT_ALGORITHM)
+    return refresh_token
+
+
+def create_tokens(sub: str):
+    access_token = create_access_token(sub)
+    refresh_token = create_refresh_token(sub)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+
+def decode_token(token: str):
     decoded_token = jwt.decode(jwt=token, key=settings.JWT_SECRET_KEY, algorithms=settings.JWT_ALGORITHM)
     return decoded_token
+
+def get_token_from_request(request: Request):
+    auth_header = request.headers.get("Authorization")
+    if auth_header:
+        return auth_header.split()[1]
+    return None
