@@ -10,7 +10,7 @@ from src.core.dependencies import db_dep, admin_id_dep, get_autocommit_conn
 
 from src.schemas.admin import TableData, TableDataExecution, IndexData, IndexDataExecution
 
-router = APIRouter(prefix='/admin', tags=['Admin'])
+router = APIRouter(tags=['Admin'])
 
 background_tasks_logger = logging.getLogger('background_tasks')
 

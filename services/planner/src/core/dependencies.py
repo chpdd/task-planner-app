@@ -5,7 +5,7 @@ from typing import Annotated
 
 from src.core.database import engine, session_factory
 from src.models import User
-from src.core.security import oauth2_scheme, decode_access_token, FullPayload
+from src.core.security import oauth2_scheme, decode_token, FullPayload
 
 
 async def get_autocommit_conn():
@@ -25,12 +25,15 @@ db_dep = Annotated[AsyncSession, Depends(get_db)]
 
 def get_payload(token: Annotated[str, Depends(oauth2_scheme)]):
     try:
-        payload = FullPayload(**decode_access_token(token))
+        payload = FullPayload(**decode_token(token))
+        if payload.type != "access":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
     except ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access token has ended")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token has expired")
     except InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token is invalid")
     return payload
+
 
 
 def get_user_id(payload: Annotated[FullPayload, Depends(get_payload)]):

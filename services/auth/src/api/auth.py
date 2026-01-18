@@ -9,7 +9,7 @@ from src.models import User
 from src.crud import user_crud
 from src.schemas import auth
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter(tags=["Auth"])
 
 
 @router.post("/register")

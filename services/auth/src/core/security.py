@@ -11,7 +11,7 @@ from src.core.config import BaseSchema, settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-passwrod_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class Header(BaseSchema):
@@ -26,11 +26,11 @@ class FullPayload(BaseSchema):
 
 
 def hash_password(password):
-    return passwrod_context.hash(password)
+    return password_context.hash(password)
 
 
 def verify_password(password, hashed_password):
-    return passwrod_context.verify(password, hashed_password)
+    return password_context.verify(password, hashed_password)
 
 
 def create_access_token(sub: str, expires_delta_minutes: int | None = None):

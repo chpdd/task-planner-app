@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     MODE: str
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     default_day_work_hours: int = 4
     default_task_work_hours: int = 2

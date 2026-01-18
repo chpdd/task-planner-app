@@ -46,8 +46,8 @@ class ExecutionTimeMiddleware(BaseHTTPMiddleware):
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        exceptional_paths = ["/docs", "/openapi.json", "/api/auth/login", "/api/auth/register", "/api/auth/refresh"]
-        if request.url.path in exceptional_paths:
+        exceptional_prefixes = ["/docs", "/openapi.json", "/redoc", "/login", "/register", "/refresh"]
+        if any(p in request.url.path for p in exceptional_prefixes):
             return await call_next(request)
         else:
             token = get_token_from_request(request)

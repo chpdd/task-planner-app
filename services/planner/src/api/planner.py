@@ -18,7 +18,7 @@ from src import schemas
 from src.models import FailedTask, TaskExecution, Day
 from src.crud import failed_task_crud, task_execution_crud, day_crud, task_crud, manual_day_crud
 
-router = APIRouter(prefix="/planner", tags=["Planner"])
+router = APIRouter(tags=["Planner"])
 
 
 class AllocationMethod(Enum):

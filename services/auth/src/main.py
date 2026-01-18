@@ -4,7 +4,8 @@ from src.api import api_router
 from src.core.middleware import middleware
 
 app = FastAPI(
+    root_path="/api/auth",
     middleware=middleware,
     swagger_ui_parameters={"persistAuthorization": True}
 )
-app.include_router(api_router, prefix="/api")
+app.include_router(api_router)
