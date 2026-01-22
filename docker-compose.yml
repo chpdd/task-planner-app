@@ -13,6 +13,7 @@ services:
       - .env
     depends_on:
       - postgres
+      - redis
 
   auth:
     build:
@@ -28,6 +29,7 @@ services:
       - .env
     depends_on:
       - postgres
+      - redis
 
   admin:
     build:
@@ -43,6 +45,7 @@ services:
       - .env
     depends_on:
       - postgres
+      - redis
 
   postgres:
     image: postgres:16.3
@@ -57,6 +60,13 @@ services:
     volumes:
       - ./infra/postgres/data:/var/lib/postgresql/data
       - ./infra/postgres/scripts:/var/lib/postgresql/scripts
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    environment:
+      - TZ=Europe/Moscow
 
   gateway:
     build:

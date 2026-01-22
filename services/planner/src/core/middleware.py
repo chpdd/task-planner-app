@@ -53,7 +53,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
             token = get_token_from_request(request)
             if not token:
                 return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Missing Authorization header"})
-
             try:
                 payload = FullPayload(**decode_token(token))
                 if payload.type != "access":

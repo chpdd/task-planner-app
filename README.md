@@ -1,127 +1,104 @@
 # Task Planner
 
-App for intelligent task scheduling and daily planning.  
-This project implements a task planner library that helps organize and prioritize tasks based on multiple parameters such as importance, interest, workload, and deadlines. Users can define their daily available time and let the bot suggest an optimal schedule.
+App for intelligent task scheduling and daily planning.
+This project implements a task planner system that helps organize and prioritize tasks based on multiple parameters such as importance, interest, workload, and deadlines.
 
 ## 🧠 Features
 
 The Task Planner is designed to help you:
 
 - 📅 Add tasks with metadata including interest level, importance, estimated work time, and deadline.
-- 🤖 Automatically calculate an optimal daily task schedule based on available working hours.
-- ⚙️ Customize daily available time per day.
-- 📈 Prioritize tasks using a scoring model combining multiple task attributes.
+- 🤖 Automatically calculate an optimal daily task schedule.
+- ⚙️ Customize daily available time.
+- 📈 Prioritize tasks using a scoring model.
+- 🔐 Secure authentication and user management.
+- 🏗️ Microservices architecture for scalability.
 
 ## 🚀 Motivation
 
-I developed this app when I had *a massive list of tasks and needed help deciding what to do each day*. The bot uses a simple algorithm to balance urgency, importance, and personal interest, resulting in schedules that fit within daily constraints.
+I developed this app to help decide what to do each day by balancing urgency, importance, and personal interest.
 
 ---
 
-## 🧩 How It Works
+## 🏗️ Architecture & Tech Stack
 
-Each task contains these parameters:
+The project is structured as a set of Dockerized microservices orchestrated via Docker Compose.
 
-| Parameter    | Description                                              |
-|--------------|----------------------------------------------------------|
-| Interest     | How much you *want* to do the task                       |
-| Work Time    | Estimated time needed to complete the task               |
-| Importance   | How critical the task is                                  |
-| Deadline     | By when the task needs to be completed                   |
-| Available Time | Hours you plan to work each day                        |
+*   **Language:** Python 3.12+
+*   **Framework:** FastAPI (Async)
+*   **Database:** PostgreSQL 16
+*   **Infrastructure:** Docker, Docker Compose, Nginx (Gateway)
 
-The app then uses these values to determine which tasks should be scheduled earlier and which can wait, optimizing for a balanced daily workflow.
+### Microservices
+
+| Service | Port | Description | Path |
+| :--- | :--- | :--- | :--- |
+| **Gateway** | `8080` | Nginx entry point routing traffic to services. | `infra/nginx` |
+| **Planner** | `8000` | Core logic for task management and scheduling. | `services/planner` |
+| **Auth** | `8001` | Authentication and user management. | `services/auth` |
+| **Admin** | `8002` | Administrative interfaces. | `services/admin` |
 
 ---
 
 ## 📦 Project Structure
 
-```
-
+```text
 /
-├── fluentd/
-├── postgres/
-│   └── scripts/
-├── web/
-├── docker-compose.yml
-├── README.md
-└── TODO
-
-````
-
-- **fluentd/** — Logging and data collection configuration (if used).
-- **postgres/scripts/** — Database initialization and schema scripts.
-- **web/** — Web components or admin interfaces (if applicable).
-- **docker-compose.yml** — Development and deployment configuration.
+├── infra/                  # Infrastructure configurations (Nginx, Postgres, Fluentd)
+├── services/               # Microservices source code
+│   ├── admin/
+│   ├── auth/
+│   └── planner/
+├── docker-compose.yml      # Main orchestration file
+└── Makefile                # Command shortcuts
+```
 
 ---
 
-## 📥 Installation
+## 📥 Installation & Running
+
+## 🛠️ Development
+
+Before you start contributing, please read our [Contributing Guide](CONTRIBUTING.md) for coding standards and development workflows.
 
 1. **Clone the repo**
    ```bash
-   git clone https://github.com/chpdd/task-planner.git
-   cd task-planner
+   git clone <repo_url>
+   cd task-planner-app
    ```
 
-2. **Configure environment**
-
-   * Set up a `.env` file with your Telegram bot token and database credentials.
-   * Example variables:
-
-     ```env
-     TELEGRAM_TOKEN=your_bot_token
-     DATABASE_URL=postgres://user:password@host:port/dbname
-     ```
-
-3. **Run with Docker**
+2. **Run with Docker Compose**
+   The easiest way to start the application is using the provided Makefile.
 
    ```bash
-   docker-compose up --build
+   make dev
    ```
+   This will start all services in development mode.
 
-> You can also run individual components locally (bot, database, web) if you prefer.
+3. **Other Commands**
+   *   **Stop Environment:** `make down`
+   *   **Rebuild:** `make build`
+   *   **Database Shell:** `make db-shell`
 
 ---
 
 ## 📝 Usage
 
-Start the bot and use Telegram commands to interact:
+Once the application is running, you can access the services via the API Gateway (Nginx) on port `8080` or directly on their respective ports for debugging.
 
-* `/add` — Add a new task
-* `/list` — Show all tasks
-* `/schedule` — Generate a daily plan
-* `/delete` — Remove a task
+*   **Auth Service:** `http://localhost:8001`
+*   **Planner Service:** `http://localhost:8000`
+*   **Admin Service:** `http://localhost:8002`
 
-*(Add actual supported commands once defined in code.)*
-
----
-
-## 🎯 Example Scenario
-
-1. Add a task:
-
-   ```text
-   /add Finish report | interest:7, importance:9, work_time:3, deadline:2025-12-20
-   ```
-2. Add more tasks.
-3. Run the scheduler:
-
-   ```text
-   /schedule
-   ```
-4. The app returns an ordered list of tasks for today.
+Swagger documentation should be available at `/docs` for each service (e.g., `http://localhost:8000/docs`).
 
 ---
 
 ## 📌 Contributing
 
-Contributions are welcome! To contribute:
+Contributions are welcome!
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/xyz`)
+2. Create your feature branch
 3. Commit your changes
 4. Push to your fork and open a Pull Request
-
----
-

@@ -4,13 +4,15 @@ import datetime as dt
 from enum import Enum
 from pydantic import TypeAdapter
 
-from fastapi import Depends, APIRouter
+from fastapi import Depends, APIRouter, Request
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 import task_planner as tp
 
-from src.core.dependencies import db_dep, get_user_id
+from src.core.dependencies import db_dep, redis_dep
+from src.core.cache import get_cache, set_cache, delete_cache_by_prefix
+from src.core.rate_limit import RateLimiter
 
 from src.core.config import settings
 
@@ -38,39 +40,61 @@ name_to_method = {
 }
 
 
-@router.get("/calendar")
-async def get_calendar(session: db_dep, user_id: int = Depends(get_user_id), start_date: dt.date = dt.date.today()
-                       ) -> list[schemas.day.TaskExecutionsDaySchema]:
+@router.get("/calendar", dependencies=[Depends(RateLimiter(times=100, seconds=60))])
+async def get_calendar(request: Request, session: db_dep, redis: redis_dep,
+                       start_date: dt.date = dt.date.today()) -> list[schemas.day.TaskExecutionsDaySchema]:
+    user_id = request.state.user_id
+    cache_key = f"planner:calendar:{user_id}:{start_date}"
+
+    cached_data = await get_cache(redis, cache_key, list[schemas.day.TaskExecutionsDaySchema])
+    if cached_data is not None:
+        return cached_data
+
     days_stmt = select(Day).options(selectinload(Day.task_executions)).where(Day.owner_id == user_id,
                                                                              Day.date >= start_date)
-    days = await session.scalars(days_stmt)
-    # return TypeAdapter(list[schemas.day.TaskExecutionsDaySchema]).validate_python(days).validate_python(days)
+    days = (await session.scalars(days_stmt)).all()
+
+    await set_cache(redis, cache_key, days, list[schemas.day.TaskExecutionsDaySchema])
     return days
 
-@router.get("/calendar_with_tasks")
-async def get_calendar_with_tasks(session: db_dep, user_id: int = Depends(get_user_id),
-                                  start_date: dt.date = dt.date.today()
-                                  ) -> list[schemas.day.TasksDaySchema]:
+
+@router.get("/calendar_with_tasks", dependencies=[Depends(RateLimiter(times=100, seconds=60))])
+async def get_calendar_with_tasks(request: Request, session: db_dep, redis: redis_dep,
+                                  start_date: dt.date = dt.date.today()) -> list[schemas.day.TasksDaySchema]:
+    user_id = request.state.user_id
+    cache_key = f"planner:calendar_with_tasks:{user_id}:{start_date}"
+
+    cached_data = await get_cache(redis, cache_key, list[schemas.day.TasksDaySchema])
+    if cached_data is not None:
+        return cached_data
+
     days_stmt = select(Day).options(selectinload(Day.task_executions).selectinload(TaskExecution.task)).where(
         Day.owner_id == user_id,
         Day.date >= start_date)
-    days = await session.scalars(days_stmt)
-    # return TypeAdapter(list[schemas.day.TaskExecutionsDaySchema]).validate_python(days)
+    days = (await session.scalars(days_stmt)).all()
+
+    await set_cache(redis, cache_key, days, list[schemas.day.TasksDaySchema])
     return days
 
 
 @router.get("/failed_tasks")
-async def list_failed_tasks(session: db_dep, user_id: int = Depends(get_user_id)) -> list[
+async def list_failed_tasks(request: Request, session: db_dep) -> list[
     schemas.failed_task.FailedTaskSchema]:
-    return await failed_task_crud.schema_owner_list(session, owner_id=user_id)
+    return await failed_task_crud.schema_owner_list(session, owner_id=request.state.user_id)
 
 
-@router.post("/allocate")
-async def allocate_tasks(allocation_method: AllocationMethod, session: db_dep, user_id: int = Depends(get_user_id),
+@router.post("/allocate", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+async def allocate_tasks(allocation_method: AllocationMethod, request: Request, session: db_dep, redis: redis_dep,
                          start_date: dt.date = dt.date.today()):
+    user_id = request.state.user_id
     allocation_method = name_to_method.get(allocation_method, None)
 
+    # Очистка кэша перед изменением данных
+    await delete_cache_by_prefix(redis, f"planner:calendar:{user_id}")
+    await delete_cache_by_prefix(redis, f"planner:calendar_with_tasks:{user_id}")
+
     await failed_task_crud.owner_all_delete(session, user_id)
+
     await task_execution_crud.owner_all_delete(session, user_id)
     await day_crud.owner_all_delete(session, user_id)
 
@@ -113,3 +137,4 @@ async def allocate_tasks(allocation_method: AllocationMethod, session: db_dep, u
 
     await session.commit()
     return {"detail": "Allocation is successful"}
+

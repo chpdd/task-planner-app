@@ -73,6 +73,8 @@ def decode_token(token: str):
 
 def get_token_from_request(request: Request):
     auth_header = request.headers.get("Authorization")
-    if auth_header:
-        return auth_header.split()[1]
+    if auth_header and auth_header.lower().startswith("bearer "):
+        parts = auth_header.split()
+        if len(parts) == 2:
+            return parts[1]
     return None

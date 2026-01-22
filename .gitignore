@@ -7,3 +7,5 @@ postgres
 elasticsearch
 
 TODO
+.gemini/
+gha-creds-*.json

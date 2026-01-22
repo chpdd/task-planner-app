@@ -1,11 +1,11 @@
-from fastapi import Depends, status, HTTPException
+from fastapi import Depends, status, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from jwt import ExpiredSignatureError, InvalidTokenError
+from redis.asyncio import Redis
 from typing import Annotated
 
 from src.core.database import engine, session_factory
+from src.core.redis import redis_service
 from src.models import User
-from src.core.security import oauth2_scheme, decode_token, FullPayload
 
 
 async def get_autocommit_conn():
@@ -23,29 +23,17 @@ async def get_db():
 db_dep = Annotated[AsyncSession, Depends(get_db)]
 
 
-def get_payload(token: Annotated[str, Depends(oauth2_scheme)]):
-    try:
-        payload = FullPayload(**decode_token(token))
-        if payload.type != "access":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
-    except ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token has expired")
-    except InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token is invalid")
-    return payload
+async def get_redis_client() -> Redis:
+    return redis_service.client
 
 
-
-def get_user_id(payload: Annotated[FullPayload, Depends(get_payload)]):
-    return int(payload.sub)
+redis_dep = Annotated[Redis, Depends(get_redis_client)]
 
 
-user_id_dep = Annotated[int, Depends(get_user_id)]
-
-
-async def get_admin_id(user_id: user_id_dep, session: db_dep):
+async def get_admin_id(request: Request, session: db_dep):
+    user_id = request.state.user_id
     user = await session.get(User, user_id)
-    if user.is_admin:
+    if user and user.is_admin:
         return user_id
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                         detail="Access forbidden. This route is available only for admins.")
