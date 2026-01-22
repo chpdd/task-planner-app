@@ -1,7 +1,7 @@
 services:
-  web:
+  planner:
     volumes:
-      - ./services/web:/app
+      - ./services/planner:/app
       - /app/.venv
     working_dir: /app
     environment:

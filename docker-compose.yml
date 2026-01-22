@@ -1,18 +1,19 @@
 services:
-  web:
+  planner:
     build:
-      context: services/web
+      context: services/planner
       dockerfile: Dockerfile
       target: prod
     environment:
       - TZ=Europe/Moscow
     ports:
-      - "8100:8100"
+      - "8000:8000"
     command: python3 start.py
     env_file:
       - .env
     depends_on:
       - postgres
+      - redis
 
   auth:
     build:
@@ -28,6 +29,7 @@ services:
       - .env
     depends_on:
       - postgres
+      - redis
 
   admin:
     build:
@@ -43,21 +45,7 @@ services:
       - .env
     depends_on:
       - postgres
-
-  planner:
-    build:
-      context: services/planner
-      dockerfile: Dockerfile
-      target: prod
-    environment:
-      - TZ=Europe/Moscow
-    ports:
-      - "8003:8003"
-    command: python3 start.py
-    env_file:
-      - .env
-    depends_on:
-      - postgres
+      - redis
 
   postgres:
     image: postgres:16.3
@@ -73,6 +61,13 @@ services:
       - ./infra/postgres/data:/var/lib/postgresql/data
       - ./infra/postgres/scripts:/var/lib/postgresql/scripts
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    environment:
+      - TZ=Europe/Moscow
+
   gateway:
     build:
       context: infra/nginx
@@ -80,7 +75,6 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - web
       - auth
       - admin
       - planner

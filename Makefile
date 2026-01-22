@@ -27,12 +27,6 @@ help: ## Show this help message
 full:
 	$(DC_DEV) up -d
 
-web: ## Run development environment
-	$(DC_DEV) up web -d
-
-web-build:
-	$(DC_DEV) up web -d --build
-
 planner:
 	$(DC_DEV) up planner -d
 
@@ -43,7 +37,7 @@ prod-build:
 	$(DC_PROD) up -d --build
 
 test: ## Run tests
-	$(DC_TEST) run --rm --build web poetry run pytest -v
+	$(DC_TEST) run --rm --build planner poetry run pytest -v
 
 test-coverage:
 	$(DC_TEST) run --rm web poetry run pytest --cov=.
@@ -61,10 +55,10 @@ shell: ## Enter web container
 	$(DC_DEV) exec web bash
 
 lint: ## Run linting
-	$(DC_DEV) run --rm web poetry run ruff check .
+	$(DC_DEV) run --rm planner poetry run ruff check .
 
 lint-watch:
-	$(DC_DEV) run --rm web poetry run ruff check . -w
+	$(DC_DEV) run --rm web planner run ruff check . -w
 
 
 clean: ## Nuke everything

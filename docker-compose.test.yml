@@ -1,17 +1,45 @@
 services:
-  web:
+  planner:
     build:
+      context: services/planner
       target: test
-    command: pytest
-    volumes:
-      - ./services/web:/app
-    working_dir: /app
     environment:
       - MODE=test
-      - DB_HOST=postgres
       - PYTHONPATH=.
     env_file:
       - .test.env
     depends_on:
       postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+
+  auth:
+    build:
+      context: services/auth
+      target: test
+    environment:
+      - MODE=test
+      - PYTHONPATH=.
+    env_file:
+      - .test.env
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+
+  admin:
+    build:
+      context: services/admin
+      target: test
+    environment:
+      - MODE=test
+      - PYTHONPATH=.
+    env_file:
+      - .test.env
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
         condition: service_started
