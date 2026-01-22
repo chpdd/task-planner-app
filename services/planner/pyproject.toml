@@ -1,6 +1,6 @@
 [project]
 name = "task-planner-planner"
-version = "0.6.0"
+version = "0.7.0"
 description = ""
 authors = [{name = "chpdd", email = "chupilko_dd@gmail.com"}]
 requires-python = ">=3.12"
