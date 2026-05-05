@@ -7,7 +7,7 @@ DC_PROD = $(DC) -f docker-compose.yml
 DC_TEST = $(DC) -f docker-compose.yml -f docker-compose.test.yml
 FRONTEND_DIR = frontend
 
-.PHONY: dev prod test down build help logs shell lint clean db-shell run-all run-all-stop
+.PHONY: dev prod test down build help logs shell lint clean db-shell run-all run-all-stop alembic-revision alembic-upgrade alembic-upgrade-active alembic-downgrade alembic-heads
 
 default: dev
 
@@ -72,6 +72,26 @@ db-shell: ## Enter Postgres shell
 
 alembic-upgrade:
 	$(DC_DEV) run --rm web poetry run alembic upgrade head
+
+# Alembic migration commands
+alembic-revision: ## Create new migration (usage: make alembic-revision msg="description" target=planner)
+	$(DC_DEV) run --rm $(target) poetry run alembic -x tenant=public revision --autogenerate -m $(msg)
+	$(DC) down --remove-orphans
+
+alembic-upgrade-run: ## Upgrade migrations (usage: make alembic-upgrade-run target=planner up_rev=head)
+	$(DC_DEV) run --rm $(target) poetry run alembic upgrade $(up_rev)
+	$(DC) down --remove-orphans
+
+alembic-upgrade-active: ## Upgrade in running container (usage: make alembic-upgrade-active target=planner up_rev=head)
+	docker compose exec $(target) alembic upgrade $(up_rev)
+
+alembic-downgrade: ## Downgrade migrations (usage: make alembic-downgrade target=planner down_rev=-1)
+	$(DC_DEV) run --rm $(target) poetry run alembic downgrade $(down_rev)
+	$(DC) down --remove-orphans
+
+alembic-heads: ## Show current migration heads (usage: make alembic-heads target=planner)
+	$(DC_DEV) run --rm $(target) poetry run alembic heads
+	$(DC) down --remove-orphans
 
 # Full application startup (backend + frontend)
 run-all: ## Start full application (backend + frontend)
