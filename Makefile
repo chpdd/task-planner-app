@@ -70,27 +70,24 @@ clean: ## Nuke everything
 db-shell: ## Enter Postgres shell
 	$(DC) exec postgres psql -U admin -d task_planner_db
 
-alembic-upgrade:
-	$(DC_DEV) run --rm web poetry run alembic upgrade head
-
 # Alembic migration commands
-alembic-revision: ## Create new migration (usage: make alembic-revision msg="description" target=planner)
-	$(DC_DEV) run --rm $(target) poetry run alembic -x tenant=public revision --autogenerate -m $(msg)
+alembic-revision: ## Create new migration (usage: make alembic-revision msg="description")
+	$(DC_DEV) run --rm planner poetry run alembic -x tenant=public revision --autogenerate -m $(msg)
 	$(DC) down --remove-orphans
 
-alembic-upgrade-run: ## Upgrade migrations (usage: make alembic-upgrade-run target=planner up_rev=head)
-	$(DC_DEV) run --rm $(target) poetry run alembic upgrade $(up_rev)
+alembic-upgrade: ## Upgrade migrations (usage: make alembic-upgrade up_rev=head)
+	$(DC_DEV) run --rm planner poetry run alembic upgrade $(up_rev)
 	$(DC) down --remove-orphans
 
-alembic-upgrade-active: ## Upgrade in running container (usage: make alembic-upgrade-active target=planner up_rev=head)
-	docker compose exec $(target) alembic upgrade $(up_rev)
+alembic-upgrade-active: ## Upgrade in running container (usage: make alembic-upgrade-active up_rev=head)
+	docker compose exec planner alembic upgrade $(up_rev)
 
-alembic-downgrade: ## Downgrade migrations (usage: make alembic-downgrade target=planner down_rev=-1)
-	$(DC_DEV) run --rm $(target) poetry run alembic downgrade $(down_rev)
+alembic-downgrade: ## Downgrade migrations (usage: make alembic-downgrade down_rev=-1)
+	$(DC_DEV) run --rm planner poetry run alembic downgrade $(down_rev)
 	$(DC) down --remove-orphans
 
-alembic-heads: ## Show current migration heads (usage: make alembic-heads target=planner)
-	$(DC_DEV) run --rm $(target) poetry run alembic heads
+alembic-heads: ## Show current migration heads (usage: make alembic-heads)
+	$(DC_DEV) run --rm planner poetry run alembic heads
 	$(DC) down --remove-orphans
 
 # Full application startup (backend + frontend)
