@@ -6,6 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware import Middleware
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from jwt import ExpiredSignatureError, InvalidTokenError
 
 from src.core.security import FullPayload, decode_token, get_token_from_request
@@ -67,4 +68,14 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return response
 
 
-middleware = [Middleware(LoggingMiddleware), Middleware(AuthMiddleware)]
+middleware = [
+    Middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173", "http://localhost:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    ),
+    Middleware(LoggingMiddleware),
+    Middleware(AuthMiddleware),
+]

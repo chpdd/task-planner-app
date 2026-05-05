@@ -96,9 +96,14 @@ Swagger documentation should be available at `/docs` for each service (e.g., `ht
 
 ## 📌 Contributing
 
-Contributions are welcome!
+Before contributing, please read our [Contributing Guide](CONTRIBUTING.md) for coding standards and branch naming conventions.
 
 1. Fork the repository
 2. Create your feature branch
 3. Commit your changes
 4. Push to your fork and open a Pull Request
+
+### Repository Management
+
+- [Branch Protection Rules](docs/branch-protection.md) — How we protect `main` and other branches
+- [CONTRIBUTING.md](CONTRIBUTING.md) — Development workflow

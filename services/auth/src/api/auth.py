@@ -1,6 +1,5 @@
-from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.security import OAuth2PasswordRequestForm
-from typing import Annotated
+from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel
 
 from src.core import security
 from src.core.dependencies import db_dep
@@ -10,6 +9,31 @@ from src.crud import user_crud
 from src.schemas import auth
 
 router = APIRouter(tags=["Auth"])
+
+
+class LoginSchema(BaseModel):
+    username: str
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    name: str
+
+
+def create_tokens_with_user(user_id: int, user_name: str):
+    """Create tokens and include user data in response."""
+    access_token = security.create_access_token(str(user_id))
+    refresh_token = security.create_refresh_token(str(user_id))
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user_id,
+            "username": user_name
+        }
+    }
 
 
 @router.post("/register")
@@ -22,17 +46,16 @@ async def register_user(auth_schema: auth.AuthSchema, session: db_dep):
     user = User(hashed_password=hashed_password, name=auth_schema.name)
     await user_crud.create(session, user)
     await session.commit()
-    return security.create_tokens(str(user.id))
+    return create_tokens_with_user(user.id, user.name)
 
 
 @router.post("/login")
-async def login_user(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-                     session: db_dep):
-    user = await user_crud.get_by_name(session, form_data.username)
+async def login_user(login_schema: LoginSchema, session: db_dep):
+    user = await user_crud.get_by_name(session, login_schema.username)
 
-    if not user or not security.verify_password(form_data.password, user.hashed_password):
+    if not user or not security.verify_password(login_schema.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User with this name and password not found")
-    return security.create_tokens(str(user.id))
+    return create_tokens_with_user(user.id, user.name)
 
 
 @router.post("/refresh")

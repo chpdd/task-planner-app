@@ -5,8 +5,9 @@ DC = docker compose
 DC_DEV = $(DC)
 DC_PROD = $(DC) -f docker-compose.yml
 DC_TEST = $(DC) -f docker-compose.yml -f docker-compose.test.yml
+FRONTEND_DIR = frontend
 
-.PHONY: dev prod test down build help logs shell lint clean db-shell
+.PHONY: dev prod test down build help logs shell lint clean db-shell run-all run-all-stop
 
 default: dev
 
@@ -14,15 +15,17 @@ help: ## Show this help message
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  dev      Run development environment (with hot reload)"
-	@echo "  prod     Run production verification (strict build)"
-	@echo "  test     Run tests"
-	@echo "  build    Build/Rebuild all images"
-	@echo "  down     Stop all containers"
-	@echo "  logs     Follow logs for all services"
-	@echo "  shell    Enter the web container shell"
-	@echo "  lint     Run code linting (ruff)"
-	@echo "  clean    Remove all containers, networks, and volumes"
+	@echo "  dev           Run backend services (docker compose)"
+	@echo "  run-all       Start full application (backend + frontend)"
+	@echo "  run-all-stop  Stop full application (backend + frontend)"
+	@echo "  prod          Run production verification (strict build)"
+	@echo "  test          Run tests"
+	@echo "  build         Build/Rebuild all images"
+	@echo "  down          Stop all containers"
+	@echo "  logs          Follow logs for all services"
+	@echo "  shell         Enter the web container shell"
+	@echo "  lint          Run code linting (ruff)"
+	@echo "  clean         Remove all containers, networks, and volumes"
 
 full:
 	$(DC_DEV) up -d
@@ -69,3 +72,25 @@ db-shell: ## Enter Postgres shell
 
 alembic-upgrade:
 	$(DC_DEV) run --rm web poetry run alembic upgrade head
+
+# Full application startup (backend + frontend)
+run-all: ## Start full application (backend + frontend)
+	@echo "Starting backend services..."
+	$(DC_DEV) up -d
+	@echo "Waiting for services to be ready..."
+	@sleep 5
+	@echo "Starting frontend..."
+	@cd $(FRONTEND_DIR) && npm run dev &
+	@echo ""
+	@echo "=========================================="
+	@echo "Application is starting..."
+	@echo "Backend: http://localhost:8080"
+	@echo "Frontend: http://localhost:5173"
+	@echo "=========================================="
+
+run-all-stop: ## Stop full application (backend + frontend)
+	@echo "Stopping frontend..."
+	@pkill -f "vite" 2>/dev/null || true
+	@echo "Stopping backend services..."
+	$(DC) down --remove-orphans
+	@echo "All services stopped."
