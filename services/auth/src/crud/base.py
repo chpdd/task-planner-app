@@ -65,8 +65,10 @@ class SchemaCRUD[ORMModel: Base, CreateSchema: BaseSchema, RetrieveSchema: BaseS
         obj = await self.get(session, obj_id)
         return self.retrieve_schema.model_validate(obj)
 
-    async def schema_get_by_name(self, session: AsyncSession, name: str) -> RetrieveSchema:
+    async def schema_get_by_name(self, session: AsyncSession, name: str) -> RetrieveSchema | None:
         obj = await self.get_by_name(session, name)
+        if obj is None:
+            return None
         return self.retrieve_schema.model_validate(obj)
 
     async def schema_owner_get(self, session: AsyncSession, obj_id: int, owner_id: int) -> RetrieveSchema | None:
