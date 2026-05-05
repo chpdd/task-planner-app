@@ -40,10 +40,10 @@ prod-build:
 	$(DC_PROD) up -d --build
 
 test: ## Run tests
-	$(DC_TEST) run --rm --build planner poetry run pytest -v
+	$(DC_TEST) run --rm --build planner uv run pytest -v
 
 test-coverage:
-	$(DC_TEST) run --rm web poetry run pytest --cov=.
+	$(DC_TEST) run --rm planner uv run pytest --cov=.
 
 down: ## Stop containers
 	$(DC) down --remove-orphans
@@ -58,7 +58,7 @@ shell: ## Enter web container
 	$(DC_DEV) exec web bash
 
 lint: ## Run linting
-	$(DC_DEV) run --rm planner poetry run ruff check .
+	$(DC_DEV) run --rm planner uv run ruff check .
 
 lint-watch:
 	$(DC_DEV) run --rm web planner run ruff check . -w
@@ -70,24 +70,24 @@ clean: ## Nuke everything
 db-shell: ## Enter Postgres shell
 	$(DC) exec postgres psql -U admin -d task_planner_db
 
-# Alembic migration commands
+# Alembic migration commands (using uv)
 alembic-revision: ## Create new migration (usage: make alembic-revision msg="description")
-	$(DC_DEV) run --rm planner poetry run alembic -x tenant=public revision --autogenerate -m $(msg)
+	$(DC_DEV) run --rm planner uv run alembic -x tenant=public revision --autogenerate -m $(msg)
 	$(DC) down --remove-orphans
 
-alembic-upgrade: ## Upgrade migrations (usage: make alembic-upgrade up_rev=head)
-	$(DC_DEV) run --rm planner poetry run alembic upgrade $(up_rev)
+alembic-upgrade: ## Upgrade migrations (default: head)
+	$(DC_DEV) run --rm planner uv run alembic upgrade head
 	$(DC) down --remove-orphans
 
-alembic-upgrade-active: ## Upgrade in running container (usage: make alembic-upgrade-active up_rev=head)
-	docker compose exec planner alembic upgrade $(up_rev)
+alembic-upgrade-active: ## Upgrade in running container (default: head)
+	docker compose exec planner uv run alembic upgrade head
 
-alembic-downgrade: ## Downgrade migrations (usage: make alembic-downgrade down_rev=-1)
-	$(DC_DEV) run --rm planner poetry run alembic downgrade $(down_rev)
+alembic-downgrade: ## Downgrade migrations (default: -1)
+	$(DC_DEV) run --rm planner uv run alembic downgrade -1
 	$(DC) down --remove-orphans
 
-alembic-heads: ## Show current migration heads (usage: make alembic-heads)
-	$(DC_DEV) run --rm planner poetry run alembic heads
+alembic-heads: ## Show current migration heads
+	$(DC_DEV) run --rm planner uv run alembic heads
 	$(DC) down --remove-orphans
 
 # Full application startup (backend + frontend)

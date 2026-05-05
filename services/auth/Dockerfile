@@ -5,28 +5,19 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_VERSION=2.1.3 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_CREATE=false \
-    POETRY_NO_INTERACTION=1
+    UV_VERSION=0.6.8 \
+    UV_SYSTEM_PYTHON=1
 
-# Install poetry
-RUN pip install "poetry==$POETRY_VERSION"
+RUN pip install "uv==$UV_VERSION"
 
-# Copy dependency files
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml uv.lock ./
 
-# --- Test Stage ---
 FROM base as test
-# Install all dependencies (main + dev)
-RUN poetry install --no-root
+RUN uv sync --all --no-install-project
 COPY . .
-# Default command to run tests
 CMD ["pytest"]
 
-# --- Production Stage ---
 FROM base as prod
-# Install only main dependencies
-RUN poetry install --only main --no-root
+RUN uv sync --no-install-project
 COPY . .
 CMD ["python", "start.py"]
