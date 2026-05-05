@@ -9,6 +9,5 @@ app = FastAPI(
     title="Auth Service",
     middleware=middleware,
     swagger_ui_parameters={"persistAuthorization": True},
-    dependencies=[Depends(oauth2_scheme)]
 )
 app.include_router(api_router)
