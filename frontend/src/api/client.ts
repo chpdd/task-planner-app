@@ -223,6 +223,57 @@ export class ApiClient {
         method: 'POST',
         body: JSON.stringify({ instruction }),
       }),
+    chatStream: async function* (message: string, conversationId?: number) {
+      const headers = new Headers({
+        'Content-Type': 'application/json',
+      });
+      if (this.token) {
+        headers.set('Authorization', `Bearer ${this.token}`);
+      }
+
+      const response = await fetch(`${API_BASE}/api/planner/ai/chat_stream`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ message, conversation_id: conversationId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Streaming failed');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) return;
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('event: token')) {
+            const dataLine = line.split('\n').find(l => l.startsWith('data: '));
+            if (dataLine) {
+              const data = JSON.parse(dataLine.slice(6));
+              yield { type: 'token', text: data.text };
+            }
+          } else if (line.startsWith('event: meta')) {
+             const dataLine = line.split('\n').find(l => l.startsWith('data: '));
+             if (dataLine) {
+               const data = JSON.parse(dataLine.slice(6));
+               yield { type: 'meta', conversation_id: data.conversation_id };
+             }
+          }
+        }
+      }
+    }.bind(this),
+    listConversations: () => this.request<any[]>('/api/planner/ai/conversations'),
+    listMessages: (conversationId: number) => this.request<any[]>(`/api/planner/ai/conversations/${conversationId}/messages`),
   };
 }
 

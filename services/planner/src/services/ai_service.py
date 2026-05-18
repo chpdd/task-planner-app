@@ -1,6 +1,7 @@
 import datetime as dt
 import json
 import logging
+from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
@@ -224,6 +225,65 @@ async def call_openrouter(
     return response.json()
 
 
+async def stream_openrouter(
+    messages: list[dict[str, Any]],
+    model: str = settings.OPENROUTER_DEFAULT_MODEL,
+    temperature: float = 0.7,
+    max_tokens: int = 1024,
+) -> AsyncIterator[str]:
+    api_key = settings.OPENROUTER_API_KEY
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI provider is not configured",
+        )
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:8000",
+        "X-Title": "Task Planner AI",
+    }
+    payload: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "stream": True,
+    }
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        async with client.stream("POST", settings.OPENROUTER_API_URL, headers=headers, json=payload) as response:
+            if response.status_code != 200:
+                text = await response.aread()
+                logger.error("OpenRouter stream error: %s - %s", response.status_code, text.decode("utf-8", "ignore"))
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="AI provider request failed",
+                )
+
+            async for line in response.aiter_lines():
+                if not line or not line.startswith("data:"):
+                    continue
+
+                data = line[len("data:"):].strip()
+                if data == "[DONE]":
+                    break
+
+                try:
+                    chunk = json.loads(data)
+                except json.JSONDecodeError:
+                    continue
+
+                content = (
+                    chunk.get("choices", [{}])[0]
+                    .get("delta", {})
+                    .get("content")
+                )
+                if content:
+                    yield content
+
+
 def extract_json_payload(content: str) -> dict[str, Any]:
     clean = content
     if "```json" in clean:
@@ -440,6 +500,7 @@ async def run_chat_with_tools(
     llm_call: Any,
     redis: Redis | None = None,
     conversation_id: int | None = None,
+    user_content: Any | None = None,
 ) -> dict[str, Any]:
     conversation = await _get_or_create_conversation(session, user_id, conversation_id)
     system_prompt = await build_system_prompt(user_id, session)
@@ -449,7 +510,7 @@ async def run_chat_with_tools(
         *history,
     ]
     await _store_message(session, conversation.id, "user", message)
-    messages.append({"role": "user", "content": message})
+    messages.append({"role": "user", "content": user_content if user_content is not None else message})
 
     for _ in range(6):
         result = await llm_call(
@@ -525,6 +586,103 @@ async def run_chat_with_tools(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         detail="AI exceeded maximum tool-calling steps",
     )
+
+
+async def run_chat_stream(
+    user_id: int,
+    message: str,
+    session: AsyncSession,
+    model: str,
+    conversation_id: int | None = None,
+    user_content: Any | None = None,
+    redis: Redis | None = None,
+) -> tuple[int, AsyncIterator[str]]:
+    conversation = await _get_or_create_conversation(session, user_id, conversation_id)
+    system_prompt = await build_system_prompt(user_id, session)
+    history = await _load_conversation_history(session, conversation.id)
+    messages: list[dict[str, Any]] = [
+        {"role": "system", "content": system_prompt},
+        *history,
+    ]
+    messages.append({"role": "user", "content": user_content if user_content is not None else message})
+    await _store_message(session, conversation.id, "user", message)
+    await session.commit()
+
+    async def _generator() -> AsyncIterator[str]:
+        for _ in range(6):
+            result = await call_openrouter(
+                messages,
+                model=model,
+                temperature=0.4,
+                tools=AI_TOOLS,
+                tool_choice="auto",
+            )
+            assistant_message = result["choices"][0]["message"]
+            tool_calls = assistant_message.get("tool_calls") or []
+
+            if not tool_calls:
+                break
+
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": assistant_message.get("content") or "",
+                    "tool_calls": tool_calls,
+                }
+            )
+            await _store_message(
+                session,
+                conversation.id,
+                "assistant",
+                assistant_message.get("content") or "",
+            )
+
+            for call in tool_calls:
+                function_data = call.get("function", {})
+                tool_name = function_data.get("name", "")
+                raw_args = function_data.get("arguments", "{}")
+
+                try:
+                    tool_result = await execute_tool_call(user_id, session, redis, tool_name, raw_args)
+                except HTTPException as exc:
+                    tool_result = {"error": exc.detail}
+                except Exception as exc:  # pragma: no cover
+                    logger.exception("Unexpected tool execution error")
+                    tool_result = {"error": str(exc)}
+
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": call.get("id"),
+                        "name": tool_name,
+                        "content": json.dumps(tool_result, default=str),
+                    }
+                )
+                await _store_message(
+                    session,
+                    conversation.id,
+                    "tool",
+                    json.dumps(tool_result, default=str),
+                    tool_name=tool_name,
+                    tool_call_id=call.get("id"),
+                )
+            await session.commit()
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="AI exceeded maximum tool-calling steps",
+            )
+
+        chunks: list[str] = []
+        async for delta in stream_openrouter(messages, model=model, temperature=0.4):
+            chunks.append(delta)
+            yield delta
+
+        assistant_content = "".join(chunks)
+        await _store_message(session, conversation.id, "assistant", assistant_content)
+        await session.commit()
+
+    return conversation.id, _generator()
 
 
 async def create_task_via_ai(

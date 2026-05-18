@@ -3,6 +3,7 @@ from src.services.ai_service import (
     call_openrouter,
     create_allocation_via_ai,
     create_task_via_ai,
+    run_chat_stream,
     run_chat_with_tools,
 )
 from src.services.allocation_planner import (
@@ -15,6 +16,7 @@ __all__ = [
     "apply_allocation_plan",
     "build_system_prompt",
     "call_openrouter",
+    "run_chat_stream",
     "create_task_via_ai",
     "create_allocation_via_ai",
     "run_chat_with_tools",

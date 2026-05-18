@@ -152,7 +152,12 @@
     "placeholder": "Ask me about your tasks...",
     "attach": "Attach",
     "send": "Send",
-    "thinking": "Thinking..."
+    "thinking": "Thinking...",
+    "newChat": "New chat",
+    "chat": "Chat",
+    "history": "History",
+    "noHistory": "No history found",
+    "error": "Failed to send message"
   },
   "user": {
     "logout": "Logout",
