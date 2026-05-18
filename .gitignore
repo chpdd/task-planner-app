@@ -7,5 +7,19 @@ postgres
 elasticsearch
 
 TODO
-.gemini/
 gha-creds-*.json
+
+node_modules
+frontend/node_modules
+frontend/test-results
+frontend/playwright-report
+frontend/dist
+
+AGENTS.md
+.sisyphus
+.playwright-mcp
+todos-layout
+.opencode
+.gemini/
+
+docs

@@ -8,16 +8,17 @@ ENV PYTHONUNBUFFERED=1 \
     UV_VERSION=0.6.8 \
     UV_SYSTEM_PYTHON=1
 
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 RUN pip install "uv==$UV_VERSION"
 
 COPY pyproject.toml uv.lock ./
 
 FROM base as test
-RUN uv sync --all --no-install-project
+RUN uv sync --extra dev --no-install-project
 COPY . .
 CMD ["pytest"]
 
 FROM base as prod
-RUN uv sync --no-install-project
+RUN uv sync --extra dev --no-install-project
 COPY . .
-CMD ["python", "start.py"]
+CMD [".venv/bin/python", "start.py"]

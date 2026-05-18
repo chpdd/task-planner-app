@@ -45,9 +45,6 @@ test: ## Run tests
 test-coverage:
 	$(DC_TEST) run --rm planner uv run pytest --cov=.
 
-down: ## Stop containers
-	$(DC) down --remove-orphans
-
 build: ## Build images
 	$(DC) build
 
@@ -91,23 +88,13 @@ alembic-heads: ## Show current migration heads
 	$(DC) down --remove-orphans
 
 # Full application startup (backend + frontend)
-run-all: ## Start full application (backend + frontend)
-	@echo "Starting backend services..."
+up: ## Start full application (backend + frontend)
 	$(DC_DEV) up -d
-	@echo "Waiting for services to be ready..."
 	@sleep 5
-	@echo "Starting frontend..."
 	@cd $(FRONTEND_DIR) && npm run dev &
-	@echo ""
-	@echo "=========================================="
-	@echo "Application is starting..."
-	@echo "Backend: http://localhost:8080"
+	@echo "Backend: http://localhost:8081"
 	@echo "Frontend: http://localhost:5173"
-	@echo "=========================================="
 
-run-all-stop: ## Stop full application (backend + frontend)
-	@echo "Stopping frontend..."
+down: ## Stop full application (backend + frontend)
 	@pkill -f "vite" 2>/dev/null || true
-	@echo "Stopping backend services..."
 	$(DC) down --remove-orphans
-	@echo "All services stopped."

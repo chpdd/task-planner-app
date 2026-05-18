@@ -1,3 +1,4 @@
+import asyncio
 import jwt
 import datetime as dt
 
@@ -25,12 +26,12 @@ class FullPayload(BaseSchema):
     type: str = "access"
 
 
-def hash_password(password):
-    return password_context.hash(password)
+async def hash_password(password: str) -> str:
+    return await asyncio.to_thread(password_context.hash, password)
 
 
-def verify_password(password, hashed_password):
-    return password_context.verify(password, hashed_password)
+async def verify_password(password: str, hashed_password: str) -> bool:
+    return await asyncio.to_thread(password_context.verify, password, hashed_password)
 
 
 def create_access_token(sub: str, expires_delta_minutes: int | None = None):

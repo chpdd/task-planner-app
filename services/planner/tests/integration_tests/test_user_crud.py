@@ -1,8 +1,8 @@
 import pytest
-from fastapi import HTTPException
 
 from src.crud.user import user_crud
 from src.schemas.user import CreateUserSchema
+from src.core.exceptions import RowNotFoundError
 from src.models import User
 from src.core import security
 
@@ -64,6 +64,5 @@ async def test_delete_user(db_session):
     await user_crud.delete(db_session, user)
     await db_session.commit()
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(RowNotFoundError):
         await user_crud.get(db_session, user.id)
-    assert exc.value.status_code == 404

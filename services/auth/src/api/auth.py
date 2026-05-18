@@ -38,12 +38,12 @@ def create_tokens_with_user(user_id: int, user_name: str):
 
 @router.post("/register")
 async def register_user(auth_schema: auth.AuthSchema, session: db_dep):
-    existing_user = await user_crud.schema_get_by_name(session, auth_schema.name)
+    existing_user = await user_crud.schema_get_by_name(session, auth_schema.username)
     if existing_user is not None:
         raise HTTPException(detail="This name is already taken", status_code=status.HTTP_409_CONFLICT)
 
-    hashed_password = security.hash_password(auth_schema.password)
-    user = User(hashed_password=hashed_password, name=auth_schema.name)
+    hashed_password = await security.hash_password(auth_schema.password)
+    user = User(hashed_password=hashed_password, name=auth_schema.username)
     await user_crud.create(session, user)
     await session.commit()
     return create_tokens_with_user(user.id, user.name)
@@ -53,7 +53,7 @@ async def register_user(auth_schema: auth.AuthSchema, session: db_dep):
 async def login_user(login_schema: LoginSchema, session: db_dep):
     user = await user_crud.get_by_name(session, login_schema.username)
 
-    if not user or not security.verify_password(login_schema.password, user.hashed_password):
+    if not user or not await security.verify_password(login_schema.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User with this name and password not found")
     return create_tokens_with_user(user.id, user.name)
 
