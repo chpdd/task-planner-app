@@ -1,9 +1,12 @@
 import datetime as dt
 
 from fastapi import APIRouter, HTTPException, Request, status
+from sqlalchemy import select
+
 from src.core.cache import delete_cache_by_prefix, get_cache, set_cache
 from src.core.dependencies import db_dep, redis_dep
 from src.crud import allocation_crud, calendar_crud
+from src.models import AllocationType
 from src.schemas import allocation
 from src.services import AllocationPlannerMethod, apply_allocation_plan
 
@@ -11,16 +14,13 @@ router = APIRouter(prefix="/allocations", tags=["Allocations"])
 
 
 @router.get("/allocation_types", response_model=list[allocation.AllocationTypeSchema])
-async def list_allocation_types(redis: redis_dep) -> list[allocation.AllocationTypeSchema]:
+async def list_allocation_types(session: db_dep, redis: redis_dep) -> list[allocation.AllocationTypeSchema]:
     cache_key = "planner:allocation_types:v1"
     cached = await get_cache(redis, cache_key, list[allocation.AllocationTypeSchema])
     if cached is not None:
         return cached
-    result = [
-        allocation.AllocationTypeSchema(code="even", name="Равномерное"),
-        allocation.AllocationTypeSchema(code="priority", name="По приоритету"),
-        allocation.AllocationTypeSchema(code="compact", name="Компактное"),
-    ]
+    rows = list((await session.scalars(select(AllocationType).order_by(AllocationType.code.asc()))).all())
+    result = [allocation.AllocationTypeSchema(code=row.code, name=row.name) for row in rows]
     await set_cache(redis, cache_key, result, list[allocation.AllocationTypeSchema], expire=60 * 60 * 24 * 30)
     return result
 

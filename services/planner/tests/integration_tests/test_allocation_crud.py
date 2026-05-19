@@ -1,11 +1,10 @@
 import pytest
 
+from src.core import security
 from src.crud import allocation_crud, calendar_crud, user_crud
 from src.models import User
-from src.models.allocation import AllocationType
 from src.schemas.allocation import AllocationCreateSchema, AllocationUpdateSchema
 from src.schemas.calendar import CalendarCreateSchema
-from src.core import security
 
 
 @pytest.fixture
@@ -33,11 +32,11 @@ async def test_calendar(db_session, test_user):
 async def test_create_allocation(db_session, test_calendar):
     alloc_in = AllocationCreateSchema(
         name="Test Allocation",
-        type=AllocationType.PRIORITY
+        type="importance"
     )
     allocation = await allocation_crud.create_for_calendar(db_session, test_calendar.id, alloc_in)
     assert allocation.name == "Test Allocation"
-    assert allocation.type == AllocationType.PRIORITY
+    assert allocation.type == "importance"
     assert allocation.calendar_id == test_calendar.id
 
 
@@ -81,10 +80,10 @@ async def test_update_allocation(db_session, test_calendar):
     )
     await db_session.commit()
 
-    update_data = AllocationUpdateSchema(name="New Name", type=AllocationType.COMPACT)
+    update_data = AllocationUpdateSchema(name="New Name", type="force_procrastinate")
     updated = await allocation_crud.update_by_id(db_session, allocation.id, update_data)
     assert updated.name == "New Name"
-    assert updated.type == AllocationType.COMPACT
+    assert updated.type == "force_procrastinate"
 
 
 @pytest.mark.asyncio

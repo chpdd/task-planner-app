@@ -85,7 +85,7 @@ const emit = defineEmits<{
 }
 
 .empty-state__action {
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   background: var(--surface);
   color: var(--fg);
   border-radius: var(--radius);

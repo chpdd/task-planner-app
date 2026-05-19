@@ -5,20 +5,20 @@ import BaseDropdown from '@/components/ui/BaseDropdown.vue'
 import BaseDropdownItem from '@/components/ui/BaseDropdownItem.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import type { DistributionFormData } from './DistributionModal.vue'
+import type { AllocationFormData } from './AllocationModal.vue'
 import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
 const { error: showError } = useToast()
 
 const typeLabels = computed(() => ({
-  even: t('distribution.types.even'),
-  frontloaded: t('distribution.types.frontloaded'),
-  backloaded: t('distribution.types.backloaded'),
+  even: t('allocation.types.even'),
+  frontloaded: t('allocation.types.frontloaded'),
+  backloaded: t('allocation.types.backloaded'),
 }))
 
 const props = withDefaults(defineProps<{
-  distributions: DistributionFormData[]
+  allocations: AllocationFormData[]
   activeId?: string | null
   isLoading?: boolean
   error?: Error | null
@@ -29,7 +29,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   select: [id: string]
-  edit: [distribution: DistributionFormData]
+  edit: [allocation: AllocationFormData]
   delete: [id: string]
   retry: []
 }>()
@@ -40,8 +40,8 @@ watch(() => props.error, (err) => {
   }
 });
 
-function handleEdit(distribution: DistributionFormData) {
-  emit('edit', distribution)
+function handleEdit(allocation: AllocationFormData) {
+  emit('edit', allocation)
 }
 
 function handleDelete(id: string) {
@@ -50,10 +50,10 @@ function handleDelete(id: string) {
 </script>
 
 <template>
-  <div class="distribution-list">
+  <div class="allocation-list">
     <div class="list-header">
       <BaseButton @click="emit('select', '')">
-        + {{ t('distribution.create') }}
+        + {{ t('allocation.create') }}
       </BaseButton>
     </div>
 
@@ -72,26 +72,26 @@ function handleDelete(id: string) {
       @retry="emit('retry')"
     />
 
-    <div v-else-if="distributions.length === 0" class="list-empty">
+    <div v-else-if="allocations.length === 0" class="list-empty">
       <p>{{ t('tasks.empty') }}</p>
       <p class="empty-hint">{{ t('tasks.emptyHint') }}</p>
     </div>
 
     <div v-else class="list-items">
       <div
-        v-for="dist in distributions"
+        v-for="dist in allocations"
         :key="dist.id"
         class="list-item"
         :class="{ active: dist.id === activeId }"
       >
         <div class="item-content" @click="emit('select', dist.id || '')">
           <div class="item-name">
-            {{ dist.name || t('distribution.title') }}
+            {{ dist.name || t('allocation.title') }}
           </div>
           <div class="item-meta">
             <span class="item-type">{{ typeLabels[dist.type] }}</span>
             <span v-if="dist.dayLimits.length > 0" class="item-limits">
-              {{ t('distribution.limitsCount', { count: dist.dayLimits.length }) }}
+              {{ t('allocation.limitsCount', { count: dist.dayLimits.length }) }}
             </span>
           </div>
         </div>
@@ -129,7 +129,7 @@ function handleDelete(id: string) {
 </template>
 
 <style scoped>
-.distribution-list {
+.allocation-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -162,7 +162,7 @@ function handleDelete(id: string) {
   display: flex;
   align-items: center;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
   transition: background-color 0.15s, border-color 0.15s;

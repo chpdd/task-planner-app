@@ -32,7 +32,7 @@ withDefaults(defineProps<Props>(), {
 
 <style scoped>
 .btn {
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   background: var(--surface);
   color: var(--fg);
   border-radius: var(--radius);

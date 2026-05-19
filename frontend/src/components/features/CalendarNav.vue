@@ -52,7 +52,7 @@ const emit = defineEmits<{
   width: 32px;
   height: 32px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 6px;
   color: var(--muted);
   cursor: pointer;

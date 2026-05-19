@@ -16,19 +16,12 @@ export interface CreateTaskData {
   work_hours: number;
 }
 
-export interface Distribution {
-  id: number;
-  name: string;
-  method: string;
-  created_at: string;
-}
-
 export interface Calendar {
   id: number;
   name: string;
-  user_id: number;
-  created_at: string;
-  updated_at: string;
+  user_id?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Allocation {
@@ -36,11 +29,17 @@ export interface Allocation {
   calendar_id: number;
   name: string;
   type: AllocationType;
+  day_limits?: Record<string, number> | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
-export type AllocationType = 'even' | 'priority' | 'compact';
+export type AllocationType =
+  | 'interest'
+  | 'importance'
+  | 'interest_importance'
+  | 'points_allocation'
+  | 'force_procrastinate';
 
 export interface Day {
   id: number;

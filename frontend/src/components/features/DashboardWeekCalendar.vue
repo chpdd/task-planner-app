@@ -2,8 +2,22 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Task } from '@/domain/Task'
+import { useUiStore } from '@/stores/uiStore'
+import CalendarViewSwitch from '@/components/features/CalendarViewSwitch.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const uiStore = useUiStore()
+const localeTag = computed(() => (locale.value === 'ru' ? 'ru-RU' : 'en-US'))
+
+const props = defineProps<{
+  focusDate: Date
+  periodLabel: string
+}>()
+
+const emit = defineEmits<{
+  'prev-period': []
+  'next-period': []
+}>()
 
 interface DayData {
   date: Date
@@ -11,52 +25,86 @@ interface DayData {
   workHours: number
 }
 
-// Week data logic
-const weekData = computed<DayData[]>(() => {
-  const today = new Date()
-  const dayOfWeek = today.getDay() - 1
-  const monday = new Date(today)
-  monday.setDate(today.getDate() - (dayOfWeek >= 0 ? dayOfWeek : 6))
+function startOfWeek(base: Date): Date {
+  const d = new Date(base)
+  const dayOfWeek = d.getDay()
+  const mondayOffset = (dayOfWeek + 6) % 7
+  d.setDate(d.getDate() - mondayOffset)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
 
+const calendarData = computed<DayData[]>(() => {
+  const focus = new Date(props.focusDate)
+  focus.setHours(0, 0, 0, 0)
   const days: DayData[] = []
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(monday)
-    date.setDate(monday.getDate() + i)
-    days.push({
-      date,
-      tasks: [],
-      workHours: 0,
-    })
+
+  if (uiStore.calendarView === 'month') {
+    const monthStart = new Date(focus.getFullYear(), focus.getMonth(), 1)
+    const monthEnd = new Date(focus.getFullYear(), focus.getMonth() + 1, 0)
+    const gridStart = startOfWeek(monthStart)
+    const monthEndOffset = (7 - monthEnd.getDay()) % 7
+    const gridEnd = new Date(monthEnd)
+    gridEnd.setDate(monthEnd.getDate() + monthEndOffset)
+
+    for (let d = new Date(gridStart); d <= gridEnd; d.setDate(d.getDate() + 1)) {
+      days.push({ date: new Date(d), tasks: [], workHours: 0 })
+    }
+    return days
   }
+
+  let start = new Date(focus)
+  let count = 1
+  if (uiStore.calendarView === 'week' || uiStore.calendarView === 'work_week') {
+    start = startOfWeek(focus)
+    count = uiStore.calendarView === 'work_week' ? 5 : 7
+  } else if (uiStore.calendarView === 'three_days') {
+    count = 3
+  }
+
+  for (let i = 0; i < count; i++) {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    days.push({ date: d, tasks: [], workHours: 0 })
+  }
+
   return days
 })
 
-// Week number logic
-const weekNumber = computed(() => {
-  const today = new Date()
-  const start = new Date(today.getFullYear(), 0, 1)
-  const diff = today.getTime() - start.getTime()
-  const oneWeek = 604800000
-  return Math.ceil((diff + start.getDay() * 86400000) / oneWeek)
-})
-
-// Day name helper
 function getDayName(date: Date): string {
-  const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
-  return days[date.getDay()]
+  return date.toLocaleDateString(localeTag.value, { weekday: 'short' })
 }
 </script>
 
 <template>
   <div class="week-calendar">
     <div class="week-header">
-      <span class="week-label">{{ t('calendar.week') }} {{ weekNumber }}</span>
+      <div class="period-nav">
+        <button class="period-btn" type="button" @click="emit('prev-period')">←</button>
+        <span class="period-label">{{ periodLabel }}</span>
+        <button class="period-btn" type="button" @click="emit('next-period')">→</button>
+      </div>
+      <CalendarViewSwitch
+        :model-value="uiStore.calendarView"
+        :list-mode="uiStore.calendarListMode"
+        @update:model-value="(v) => (uiStore.calendarView = v)"
+        @update:list-mode="(v) => (uiStore.calendarListMode = v)"
+      />
     </div>
-    <div class="week-grid">
-      <div v-for="day in weekData" :key="day.date.toISOString()" class="week-day">
-        <div class="week-day-header">
-          <span class="week-day-name">{{ getDayName(day.date) }}</span>
-          <span class="week-day-num">{{ day.date.getDate() }}</span>
+
+    <div v-if="uiStore.calendarListMode" class="list-mode-empty">
+      <span>{{ t('calendar.noTasks') }}</span>
+    </div>
+    <div
+      v-else
+      class="week-grid"
+      :class="{ 'month-grid': uiStore.calendarView === 'month' }"
+      :style="{ gridTemplateColumns: uiStore.calendarView === 'month' ? 'repeat(7, 1fr)' : `repeat(${calendarData.length || 1}, 1fr)` }"
+    >
+      <div v-for="day in calendarData" :key="day.date.toISOString()" class="week-day">
+        <div class="week-day-header" :class="{ 'month-day-header': uiStore.calendarView === 'month' }">
+          <span v-if="uiStore.calendarView !== 'month'" class="week-day-name">{{ getDayName(day.date) }}</span>
+          <span class="week-day-num" :class="{ 'month-day-num': uiStore.calendarView === 'month' }">{{ day.date.getDate() }}</span>
         </div>
         <div class="week-day-tasks">
           <div v-for="task in day.tasks" :key="task.id" class="week-task">
@@ -74,7 +122,7 @@ function getDayName(date: Date): string {
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
   margin: 20px;
@@ -82,52 +130,93 @@ function getDayName(date: Date): string {
 }
 
 .week-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  border-bottom: 3px solid var(--border);
   background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.week-label {
-  font-size: 14px;
-  font-weight: 600;
+.period-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.period-btn {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
   color: var(--fg);
+  cursor: pointer;
+}
+
+.period-label {
+  min-width: 190px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .week-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
   gap: 1px;
   background: var(--border);
   overflow: auto;
 }
 
+.month-grid .week-day {
+  min-height: 140px;
+}
+
 .week-day {
   background: var(--surface);
-  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
   min-height: 200px;
 }
 
 .week-day-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 74px;
+  padding: 10px 12px 8px;
+  border-bottom: 3px solid var(--border);
+  background: var(--bg);
+  gap: 4px;
+}
+
+.month-day-header {
+  min-height: 36px;
+  padding: 6px 8px;
+  gap: 0;
 }
 
 .week-day-name {
-  font-size: 10px;
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 500;
   color: var(--muted);
-  text-transform: uppercase;
 }
 
 .week-day-num {
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1;
   font-weight: 600;
   color: var(--fg);
+}
+
+.month-day-num {
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .week-day-tasks {
@@ -135,6 +224,7 @@ function getDayName(date: Date): string {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 8px;
 }
 
 .week-task {
@@ -146,5 +236,14 @@ function getDayName(date: Date): string {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.list-mode-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 14px;
 }
 </style>

@@ -8,37 +8,37 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 
 const { t } = useI18n()
 
-export type DistributionType = 'even' | 'frontloaded' | 'backloaded'
+export type AllocationType = 'even' | 'frontloaded' | 'backloaded'
 
 export interface DayLimit {
   day: number
   hours: number
 }
 
-export interface DistributionFormData {
+export interface AllocationFormData {
   id?: string
   name: string
-  type: DistributionType
+  type: AllocationType
   dayLimits: DayLimit[]
 }
 
 const props = defineProps<{
   open: boolean
-  distribution?: DistributionFormData | null
+  allocation?: AllocationFormData | null
 }>()
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  save: [data: DistributionFormData]
+  save: [data: AllocationFormData]
 }>()
 
 const typeOptions = computed(() => [
-  { value: 'even', label: t('distribution.types.even') },
-  { value: 'frontloaded', label: t('distribution.types.frontloaded') },
-  { value: 'backloaded', label: t('distribution.types.backloaded') },
+  { value: 'even', label: t('allocation.types.even') },
+  { value: 'frontloaded', label: t('allocation.types.frontloaded') },
+  { value: 'backloaded', label: t('allocation.types.backloaded') },
 ])
 
-const form = ref<DistributionFormData>({
+const form = ref<AllocationFormData>({
   name: '',
   type: 'even',
   dayLimits: [],
@@ -48,14 +48,14 @@ const newDayLimitDay = ref('')
 const newDayLimitHours = ref('')
 const errors = ref<{ name?: string }>({})
 
-const isEditing = computed(() => !!props.distribution?.id)
+const isEditing = computed(() => !!props.allocation?.id)
 
 const modalTitle = computed(() =>
-  isEditing.value ? t('distribution.edit') : t('distribution.create')
+  isEditing.value ? t('allocation.edit') : t('allocation.create')
 )
 
 watch(
-  () => props.distribution,
+  () => props.allocation,
   (dist) => {
     if (dist) {
       form.value = {
@@ -109,7 +109,7 @@ function validate(): boolean {
 function handleSave() {
   if (!validate()) return
 
-  const data: DistributionFormData = {
+  const data: AllocationFormData = {
     id: form.value.id,
     name: form.value.name.trim(),
     type: form.value.type,
@@ -131,28 +131,28 @@ function handleCancel() {
     :title="modalTitle"
     @update:open="emit('update:open', $event)"
   >
-    <form class="distribution-form" @submit.prevent="handleSave">
+    <form class="allocation-form" @submit.prevent="handleSave">
       <div class="field">
-        <label class="field-label">{{ t('distribution.name') }}</label>
+        <label class="field-label">{{ t('allocation.name') }}</label>
         <BaseInput
           v-model="form.name"
-          :placeholder="t('distribution.namePlaceholder')"
+          :placeholder="t('allocation.namePlaceholder')"
         />
         <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
       </div>
 
       <div class="field">
-        <label class="field-label">{{ t('distribution.type') }}</label>
+        <label class="field-label">{{ t('allocation.type') }}</label>
         <BaseSelect
           v-model="form.type"
           :options="typeOptions"
-          :placeholder="t('distribution.typeSelect')"
+          :placeholder="t('allocation.typeSelect')"
         />
       </div>
 
       <div class="field">
-        <label class="field-label">{{ t('distribution.dayLimits') }}</label>
-        <p class="field-hint">{{ t('distribution.dayLimitsHint') }}</p>
+        <label class="field-label">{{ t('allocation.dayLimits') }}</label>
+        <p class="field-hint">{{ t('allocation.dayLimitsHint') }}</p>
 
         <div class="day-limits-list">
           <div
@@ -160,7 +160,7 @@ function handleCancel() {
             :key="limit.day"
             class="day-limit-item"
           >
-            <span class="day-limit-label">{{ t('distribution.limitDay') }} {{ limit.day }}</span>
+            <span class="day-limit-label">{{ t('allocation.limitDay') }} {{ limit.day }}</span>
             <span class="day-limit-value">{{ limit.hours }} {{ t('tasks.hoursShort') }}</span>
             <button
               type="button"
@@ -179,13 +179,13 @@ function handleCancel() {
           <BaseInput
             v-model="newDayLimitDay"
             type="number"
-            :placeholder="t('distribution.limitDay')"
+            :placeholder="t('allocation.limitDay')"
           />
           <span class="add-separator">=</span>
           <BaseInput
             v-model="newDayLimitHours"
             type="number"
-            :placeholder="t('distribution.limitHours')"
+            :placeholder="t('allocation.limitHours')"
           />
           <BaseButton
             type="button"
@@ -210,7 +210,7 @@ function handleCancel() {
 </template>
 
 <style scoped>
-.distribution-form {
+.allocation-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -252,7 +252,7 @@ function handleCancel() {
   gap: 8px;
   padding: 8px 10px;
   background: var(--surface-hover);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
 }
 

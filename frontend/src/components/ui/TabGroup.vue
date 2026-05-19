@@ -40,7 +40,7 @@ function selectTab(value: string) {
 .tabs {
   display: inline-flex;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 999px;
   padding: 4px;
 }
@@ -64,6 +64,6 @@ function selectTab(value: string) {
 .tab.active {
   background: var(--bg);
   color: var(--fg);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
 }
 </style>

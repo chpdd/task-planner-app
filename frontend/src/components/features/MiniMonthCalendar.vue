@@ -44,7 +44,7 @@ const {
 <style scoped>
 .month-calendar {
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   padding: 12px;
 }
@@ -59,7 +59,7 @@ const {
 .nav-btn {
   width: 24px;
   height: 24px;
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 4px;
   background: var(--surface);
   color: var(--muted);

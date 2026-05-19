@@ -1,7 +1,6 @@
 import type {
   Task,
   CreateTaskData,
-  Distribution,
   Calendar,
   CreateCalendarData,
   Allocation,
@@ -128,27 +127,17 @@ export class ApiClient {
     delete: (id: number) => this.request<void>(`/api/planner/tasks/${id}`, { method: 'DELETE' }),
   };
 
-  // Distributions endpoints
-  distributions = {
-    list: () => this.request<Distribution[]>('/api/planner/distributions'),
-    get: (id: number) => this.request<Distribution>(`/api/planner/distributions/${id}`),
-    create: (data: object) =>
-      this.request<Distribution>('/api/planner/distributions', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: object) =>
-      this.request<Distribution>(`/api/planner/distributions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    delete: (id: number) => this.request<void>(`/api/planner/distributions/${id}`, { method: 'DELETE' }),
-  };
-
   // Calendar endpoints
   calendar = {
     get: (offset: number = 0) => this.request<unknown>(`/api/planner/calendar?offset=${offset}`),
-    allocate: (distributionId: number) =>
-      this.request<unknown>('/api/planner/allocate', { method: 'POST', body: JSON.stringify({ distribution_id: distributionId }) }),
+    allocate: (allocationId: number) =>
+      this.request<unknown>('/api/planner/allocate', { method: 'POST', body: JSON.stringify({ allocation_id: allocationId }) }),
   };
 
   // Calendars endpoints
   calendars = {
     list: () => this.request<Calendar[]>('/api/planner/calendars'),
+    listWithAllocations: () => this.request<any[]>('/api/planner/calendars/with_allocations'),
     get: (id: number) => this.request<Calendar>(`/api/planner/calendars/${id}`),
     create: (data: CreateCalendarData) =>
       this.request<Calendar>('/api/planner/calendars', { method: 'POST', body: JSON.stringify(data) }),
@@ -156,9 +145,9 @@ export class ApiClient {
       this.request<Calendar>(`/api/planner/calendars/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     delete: (id: number) => this.request<void>(`/api/planner/calendars/${id}`, { method: 'DELETE' }),
     listAllocations: (calendarId: number) =>
-      this.request<Allocation[]>(`/api/planner/calendars/${calendarId}/allocations`),
+      this.request<Allocation[]>(`/api/planner/allocations/by_calendar/${calendarId}`),
     createAllocation: (calendarId: number, data: CreateAllocationData) =>
-      this.request<Allocation>(`/api/planner/calendars/${calendarId}/allocations`, {
+      this.request<Allocation>(`/api/planner/allocations/by_calendar/${calendarId}`, {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -179,12 +168,19 @@ export class ApiClient {
 
   // Allocations endpoints
   allocations = {
+    list: () => this.request<Allocation[]>('/api/planner/allocations'),
     get: (id: number) => this.request<Allocation>(`/api/planner/allocations/${id}`),
+    create: (data: CreateAllocationData) =>
+      this.request<Allocation>('/api/planner/allocations', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: number, data: Partial<CreateAllocationData>) =>
       this.request<Allocation>(`/api/planner/allocations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     delete: (id: number) => this.request<void>(`/api/planner/allocations/${id}`, { method: 'DELETE' }),
     apply: (id: number) =>
-      this.request<{ detail: string }>(`/api/planner/allocations/${id}/apply`, { method: 'POST' }),
+      this.request<{ allocation_id: number; task_executions_created: number; days_processed: number }>(
+        `/api/planner/allocations/${id}/apply`,
+        { method: 'POST' },
+      ),
+    getTypes: () => this.request<{ code: string; name: string }[]>('/api/planner/allocations/allocation_types'),
   };
 
   // Days endpoints
@@ -223,7 +219,7 @@ export class ApiClient {
         method: 'POST',
         body: JSON.stringify({ instruction }),
       }),
-    chatStream: async function* (message: string, conversationId?: number) {
+    chatStream: async function* (this: ApiClient, message: string, conversationId?: number) {
       const headers = new Headers({
         'Content-Type': 'application/json',
       });

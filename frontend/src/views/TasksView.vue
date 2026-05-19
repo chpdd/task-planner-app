@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Task } from '@/domain/Task'
 import AppShell from '@/components/layout/AppShell.vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import TaskRow from '@/components/features/TaskRow.vue'
 import TaskModal from '@/components/features/TaskModal.vue'
@@ -17,7 +15,6 @@ import type { CreateTaskData } from '@/types/api'
 const uiStore = useUiStore()
 const tasksStore = useTasksStore()
 
-const router = useRouter()
 const { t } = useI18n()
 
 const {
@@ -120,7 +117,7 @@ function handleTaskSaved(data: CreateTaskData) {
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--border);
   background: var(--bg);
 }
 
@@ -137,7 +134,7 @@ function handleTaskSaved(data: CreateTaskData) {
   background: var(--surface);
   padding: 4px 12px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
 }
 
 .tasks-container {

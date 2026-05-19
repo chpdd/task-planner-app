@@ -20,7 +20,7 @@
   width: 24px;
   height: 24px;
   background: var(--accent);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 4px;
 }
 

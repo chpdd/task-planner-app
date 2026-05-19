@@ -16,10 +16,6 @@ const {
   isToday
 } = useCalendarGrid()
 
-function getTaskColor(task: any) {
-  // Logic for task color based on interest/importance if needed
-  return 'var(--accent)'
-}
 </script>
 
 <template>
@@ -105,7 +101,7 @@ function getTaskColor(task: any) {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
   color: var(--fg);
@@ -129,7 +125,7 @@ function getTaskColor(task: any) {
 
 .today-btn {
   padding: 8px 16px;
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
   color: var(--fg);
@@ -147,7 +143,7 @@ function getTaskColor(task: any) {
 .dow-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--border);
   padding-bottom: 8px;
 }
 
@@ -167,7 +163,7 @@ function getTaskColor(task: any) {
   grid-template-rows: repeat(6, 1fr);
   gap: 1px;
   background: var(--border);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
 }

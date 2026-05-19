@@ -14,13 +14,13 @@ from src.core.cache import delete_cache_by_prefix
 from src.core.config import settings
 from src.crud import allocation_crud, calendar_crud, day_crud, task_crud
 from src.models import AIConversation, AIMessage, Allocation, Calendar
-from src.models.allocation import AllocationType
 from src.schemas import task as task_schemas
 from src.schemas.allocation import AllocationCreateSchema, AllocationSchema, AllocationUpdateSchema
 from src.schemas.calendar import CalendarCreateSchema, CalendarSchema, CalendarUpdateSchema
 from src.schemas.day import DaySchema, DayUpdateSchema
 
 logger = logging.getLogger("ai")
+MAX_CONVERSATIONS_PER_USER = 5
 
 AI_TOOLS: list[dict[str, Any]] = [
     {
@@ -103,7 +103,16 @@ AI_TOOLS: list[dict[str, Any]] = [
                 "properties": {
                     "calendar_id": {"type": "integer"},
                     "name": {"type": "string"},
-                    "type": {"type": "string", "enum": ["even", "priority", "compact"]},
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "interest",
+                            "importance",
+                            "interest_importance",
+                            "points_allocation",
+                            "force_procrastinate",
+                        ],
+                    },
                     "day_limits": {"type": ["object", "null"]},
                 },
                 "required": ["calendar_id", "name"],
@@ -121,7 +130,17 @@ AI_TOOLS: list[dict[str, Any]] = [
                 "properties": {
                     "allocation_id": {"type": "integer"},
                     "name": {"type": ["string", "null"]},
-                    "type": {"type": ["string", "null"], "enum": ["even", "priority", "compact", None]},
+                    "type": {
+                        "type": ["string", "null"],
+                        "enum": [
+                            "interest",
+                            "importance",
+                            "interest_importance",
+                            "points_allocation",
+                            "force_procrastinate",
+                            None,
+                        ],
+                    },
                     "day_limits": {"type": ["object", "null"]},
                 },
                 "required": ["allocation_id"],
@@ -320,9 +339,31 @@ async def _get_or_create_conversation(
     session: AsyncSession,
     user_id: int,
     conversation_id: int | None,
+    initial_message: str | None = None,
 ) -> AIConversation:
+    def _make_conversation_title(text: str | None) -> str:
+        if not text:
+            return "New chat"
+        normalized = " ".join(text.split()).strip()
+        if not normalized:
+            return "New chat"
+        return normalized[:80]
+
     if conversation_id is None:
-        conversation = AIConversation(user_id=user_id)
+        existing_stmt = (
+            select(AIConversation)
+            .where(AIConversation.user_id == user_id)
+            .order_by(AIConversation.updated_at.asc(), AIConversation.id.asc())
+        )
+        existing = list((await session.scalars(existing_stmt)).all())
+        if len(existing) >= MAX_CONVERSATIONS_PER_USER:
+            await session.delete(existing[0])
+            await session.flush()
+
+        conversation = AIConversation(
+            user_id=user_id,
+            title=_make_conversation_title(initial_message),
+        )
         session.add(conversation)
         await session.flush()
         await session.refresh(conversation)
@@ -452,7 +493,7 @@ async def execute_tool_call(
 
         alloc_schema = AllocationCreateSchema(
             name=args["name"][:128],
-            type=AllocationType(args.get("type", "even")),
+            type=args.get("type", "points_allocation"),
             day_limits=args.get("day_limits"),
         )
         created_alloc = await allocation_crud.create_for_calendar(session, calendar_id, alloc_schema)
@@ -467,7 +508,7 @@ async def execute_tool_call(
         alloc_type = args.get("type")
         update_schema = AllocationUpdateSchema(
             name=args.get("name"),
-            type=AllocationType(alloc_type) if alloc_type is not None else None,
+            type=alloc_type if alloc_type is not None else None,
             day_limits=args.get("day_limits"),
         )
         updated_alloc = await allocation_crud.update_by_id(session, allocation_id, update_schema)
@@ -502,7 +543,12 @@ async def run_chat_with_tools(
     conversation_id: int | None = None,
     user_content: Any | None = None,
 ) -> dict[str, Any]:
-    conversation = await _get_or_create_conversation(session, user_id, conversation_id)
+    conversation = await _get_or_create_conversation(
+        session,
+        user_id,
+        conversation_id,
+        initial_message=message,
+    )
     system_prompt = await build_system_prompt(user_id, session)
     history = await _load_conversation_history(session, conversation.id)
     messages: list[dict[str, Any]] = [
@@ -597,7 +643,12 @@ async def run_chat_stream(
     user_content: Any | None = None,
     redis: Redis | None = None,
 ) -> tuple[int, AsyncIterator[str]]:
-    conversation = await _get_or_create_conversation(session, user_id, conversation_id)
+    conversation = await _get_or_create_conversation(
+        session,
+        user_id,
+        conversation_id,
+        initial_message=message,
+    )
     system_prompt = await build_system_prompt(user_id, session)
     history = await _load_conversation_history(session, conversation.id)
     messages: list[dict[str, Any]] = [
@@ -751,7 +802,8 @@ async def create_allocation_via_ai(
         "Based on the user's instruction, extract allocation parameters. "
         "Return ONLY a valid JSON object with these fields:\n"
         '- name (string, max 128 chars): allocation name\n'
-        '- type (string): ONE of "even", "priority", "compact"\n'
+        '- type (string): ONE of "interest", "importance", "interest_importance", '
+        '"points_allocation", "force_procrastinate"\n'
         '- day_limits (object or null): e.g. {"monday": 4, "wednesday": 6} or null\n'
         "Return valid JSON only, no additional text."
     )
@@ -764,7 +816,7 @@ async def create_allocation_via_ai(
 
     alloc_schema = AllocationCreateSchema(
         name=alloc_data["name"][:128],
-        type=AllocationType(alloc_data.get("type", "even")),
+        type=alloc_data.get("type", "points_allocation"),
         day_limits=alloc_data.get("day_limits"),
     )
     created_alloc = await allocation_crud.create_for_calendar(session, calendar_id, alloc_schema)

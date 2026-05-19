@@ -28,14 +28,18 @@ const emit = defineEmits<{
 }>()
 
 const dayNamesShort = [
+  'calendar.dayNames.sun',
   'calendar.dayNames.mon',
   'calendar.dayNames.tue',
   'calendar.dayNames.wed',
   'calendar.dayNames.thu',
   'calendar.dayNames.fri',
   'calendar.dayNames.sat',
-  'calendar.dayNames.sun',
 ]
+
+function dayLabel(date: Date): string {
+  return t(dayNamesShort[date.getDay()])
+}
 
 function isToday(date: Date): boolean {
   const today = new Date()
@@ -104,7 +108,7 @@ function getCardHeight(execution: ExecutionWithTask): number {
         class="week-day-header"
         :class="{ today: isToday(dayData.date) }"
       >
-        <span class="dow-label">{{ t(dayNamesShort[index]) }}</span>
+        <span class="dow-label">{{ dayLabel(dayData.date) }}</span>
         <span class="date-num">{{ dayData.date.getDate() }}</span>
         <input
           v-if="dayData.day"
@@ -185,7 +189,7 @@ function getCardHeight(execution: ExecutionWithTask): number {
   flex-direction: column;
   height: 100%;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -193,18 +197,18 @@ function getCardHeight(execution: ExecutionWithTask): number {
 .week-view-head {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--border);
   background: var(--bg);
 }
 
 .week-day-header {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   padding: 12px 8px;
-  border-right: 1px solid var(--border);
-  min-height: 70px;
-  gap: 4px;
+  border-right: 3px solid var(--border);
+  min-height: 94px;
+  gap: 6px;
 }
 
 .week-day-header:last-child {
@@ -216,11 +220,10 @@ function getCardHeight(execution: ExecutionWithTask): number {
 }
 
 .dow-label {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 600;
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .week-day-header.today .dow-label {
@@ -228,29 +231,23 @@ function getCardHeight(execution: ExecutionWithTask): number {
 }
 
 .date-num {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 36px;
+  line-height: 1;
+  font-weight: 700;
   color: var(--fg);
 }
 
 .week-day-header.today .date-num {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--accent);
-  color: var(--bg);
-  border-radius: 50%;
+  color: var(--accent);
 }
 
 .hours-input-header {
-  width: 40px;
+  width: 48px;
   padding: 2px 4px;
   font-size: 10px;
   text-align: center;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 4px;
   color: var(--muted);
   font-family: inherit;
@@ -272,7 +269,7 @@ function getCardHeight(execution: ExecutionWithTask): number {
 .week-col {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border);
+  border-right: 3px solid var(--border);
   min-width: 120px;
   transition: background-color 0.15s;
 }

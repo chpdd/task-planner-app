@@ -37,7 +37,7 @@ defineEmits<{
   width: 100%;
   background: var(--bg);
   color: var(--fg);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   padding: 10px;
   font: inherit;

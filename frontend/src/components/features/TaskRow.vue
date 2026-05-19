@@ -119,7 +119,7 @@ function getImportanceColor(importance: number): string {
   display: flex;
   align-items: stretch;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   padding: 14px 14px 14px 24px;
   transition: background-color 0.15s, box-shadow 0.15s;
@@ -212,7 +212,7 @@ function getImportanceColor(importance: number): string {
   font-weight: 500;
   border-radius: 999px;
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   color: var(--muted);
   white-space: nowrap;
 }

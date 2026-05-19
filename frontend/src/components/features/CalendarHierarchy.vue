@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import CalendarHierarchyAllocations from './CalendarHierarchyAllocations.vue'
 import { useCalendarsStore } from '@/stores/calendarsStore'
@@ -9,41 +8,25 @@ import { useCalendarsStore } from '@/stores/calendarsStore'
 const { t } = useI18n()
 const calendarsStore = useCalendarsStore()
 
-// Track expanded calendars
-const expandedCalendarIds = ref<Set<number>>(new Set())
-
 const { data: calendarsData, isLoading: isLoadingCalendars } = calendarsStore.useCalendarsQuery()
 
 // Computed: calendars from store
 const calendars = computed(() => calendarsData.value || [])
 const selectedCalendarId = computed(() => calendarsStore.selectedCalendarId)
+const expandedCalendarId = computed(() => calendarsStore.expandedCalendarId)
 const selectedAllocationId = computed(() => calendarsStore.selectedAllocationId)
 const isLoading = computed(() => isLoadingCalendars.value)
 
 // Toggle calendar expand
 function toggleCalendarExpand(calendarId: number) {
-  // Select this calendar when expanding
   calendarsStore.selectCalendar(calendarId)
   calendarsStore.selectAllocation(null)
-
-  if (expandedCalendarIds.value.has(calendarId)) {
-    expandedCalendarIds.value.delete(calendarId)
-  } else {
-    expandedCalendarIds.value.add(calendarId)
-  }
-  // Trigger reactivity
-  expandedCalendarIds.value = new Set(expandedCalendarIds.value)
+  calendarsStore.toggleCalendar(calendarId)
 }
 
 // Check if calendar is expanded
 function isCalendarExpanded(calendarId: number): boolean {
-  return expandedCalendarIds.value.has(calendarId)
-}
-
-// Handle create calendar button click
-function handleCreateCalendar() {
-  // This will be handled by parent component via event
-  emit('create-calendar')
+  return expandedCalendarId.value === calendarId
 }
 
 // Handle create allocation button click
@@ -109,6 +92,9 @@ const emit = defineEmits<{
 
         <!-- Allocations section (shown when expanded) -->
         <div v-if="isCalendarExpanded(calendar.id)" class="allocations-section">
+          <!-- Allocations list -->
+          <CalendarHierarchyAllocations :calendar-id="calendar.id" />
+
           <!-- Create allocation button -->
           <button
             class="create-allocation-btn"
@@ -117,9 +103,6 @@ const emit = defineEmits<{
           >
             + {{ t('allocation.create') }}
           </button>
-
-          <!-- Allocations list -->
-          <CalendarHierarchyAllocations :calendar-id="calendar.id" />
         </div>
       </div>
     </div>
@@ -135,7 +118,7 @@ const emit = defineEmits<{
 
 .hierarchy-header {
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--border);
 }
 
 .hierarchy-empty {
@@ -168,7 +151,7 @@ const emit = defineEmits<{
   gap: 8px;
   padding: 10px 12px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s;
@@ -181,9 +164,7 @@ const emit = defineEmits<{
 }
 
 .calendar-row.is-expanded {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  border-bottom-color: transparent;
+  border-color: var(--accent);
 }
 
 .calendar-row.is-selected {
@@ -219,24 +200,31 @@ const emit = defineEmits<{
 .allocations-section {
   padding: 8px 12px 12px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 var(--radius) var(--radius);
+  border: 3px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .create-allocation-btn {
   display: block;
   width: 100%;
-  padding: 6px 10px;
-  background: transparent;
-  border: 1px dashed var(--border);
+  padding: 7px 10px;
+  background: var(--surface);
+  border: 3px solid var(--border);
   border-radius: 6px;
-  color: var(--muted);
-  font-size: 13px;
-  text-align: left;
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
-  margin-bottom: 8px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.15;
 }
 
 .create-allocation-btn:hover {

@@ -29,9 +29,11 @@ NAME_TO_METHOD = {
 }
 
 ALLOCATION_TYPE_TO_METHOD = {
-    "even": tp.Planner.points_allocation,
-    "priority": tp.Planner.importance_allocation,
-    "compact": tp.Planner.force_procrastination_allocation,
+    "interest": tp.Planner.interest_allocation,
+    "importance": tp.Planner.importance_allocation,
+    "interest_importance": tp.Planner.interest_importance_allocation,
+    "points_allocation": tp.Planner.points_allocation,
+    "force_procrastinate": tp.Planner.force_procrastination_allocation,
 }
 
 
@@ -99,7 +101,7 @@ async def apply_allocation_plan(
         start_date=start_date,
     )
 
-    allocation_method = NAME_TO_METHOD.get(method) if method else ALLOCATION_TYPE_TO_METHOD.get(allocation.type.value)
+    allocation_method = NAME_TO_METHOD.get(method) if method else ALLOCATION_TYPE_TO_METHOD.get(allocation.type)
     if allocation_method is None:
         allocation_method = tp.Planner.points_allocation
     allocation_method(planner)

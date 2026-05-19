@@ -72,7 +72,7 @@ const forwarded = useForwardPropsEmits(props, emits)
   transform: translate(-50%, -50%);
   width: min(580px, calc(100vw - 30px));
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
   z-index: 51;

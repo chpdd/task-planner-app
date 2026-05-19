@@ -120,7 +120,7 @@ MOCK_ALLOCATION_RESPONSE = {
             "index": 0,
             "message": {
                 "role": "assistant",
-                "content": '{"name": "AI Allocation", "type": "priority", "day_limits": {"monday": 5}}'
+                "content": '{"name": "AI Allocation", "type": "importance", "day_limits": {"monday": 5}}'
             },
             "finish_reason": "stop"
         }
@@ -244,14 +244,14 @@ async def test_create_allocation_via_ai_endpoint(client, test_user, test_allocat
         mock_call.return_value = MOCK_ALLOCATION_RESPONSE
 
         response = await client.post(
-            f"/api/planner/ai/create_allocation?calendar_id={test_calendar.id}&instruction=Create%20a%20priority%20allocation",
+            f"/api/planner/ai/create_allocation?calendar_id={test_calendar.id}&instruction=Create%20an%20importance%20allocation",
             headers=get_auth_headers(test_user.id)
         )
 
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "AI Allocation"
-    assert data["type"] == "priority"
+    assert data["type"] == "importance"
     assert data["day_limits"] == {"monday": 5}
     mock_call.assert_called_once()
 

@@ -296,7 +296,7 @@ const importanceSliderBg = `linear-gradient(90deg, oklch(0.65 0 0), oklch(0.65 0
 .quick-date-btn {
   padding: 2px 8px;
   font-size: 11px;
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 4px;
   background: var(--surface-hover);
   color: var(--muted);

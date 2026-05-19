@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-test.describe('Calendar Distribution', () => {
+test.describe('Calendar Allocation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login')
     await page.waitForLoadState('networkidle')

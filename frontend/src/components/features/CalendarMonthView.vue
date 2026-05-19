@@ -44,6 +44,19 @@ function isToday(date: Date): boolean {
     date.getFullYear() === today.getFullYear()
 }
 
+function dayLabel(date: Date): string {
+  const sundayFirst = [
+    'calendar.dayNames.sun',
+    'calendar.dayNames.mon',
+    'calendar.dayNames.tue',
+    'calendar.dayNames.wed',
+    'calendar.dayNames.thu',
+    'calendar.dayNames.fri',
+    'calendar.dayNames.sat',
+  ]
+  return t(sundayFirst[date.getDay()])
+}
+
 function handleDragOver(event: DragEvent) {
   event.preventDefault()
   const target = event.currentTarget as HTMLElement
@@ -117,7 +130,10 @@ function getExecutionSecondaryColor(execution: ExecutionWithTask): string {
         @drop="handleDrop($event, dayData)"
       >
         <div class="day-head">
-          <span class="day-num">{{ dayData.date.getDate() }}</span>
+          <div class="day-badge">
+            <span class="day-dow">{{ dayLabel(dayData.date) }}</span>
+            <span class="day-num">{{ dayData.date.getDate() }}</span>
+          </div>
           <input
             v-if="dayData.day"
             type="number"
@@ -190,7 +206,7 @@ function getExecutionSecondaryColor(execution: ExecutionWithTask): string {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--border);
 }
 
 .dow {
@@ -201,7 +217,7 @@ function getExecutionSecondaryColor(execution: ExecutionWithTask): string {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-right: 1px solid var(--border);
+  border-right: 3px solid var(--border);
 }
 
 .dow:last-child {
@@ -242,27 +258,35 @@ function getExecutionSecondaryColor(execution: ExecutionWithTask): string {
 
 .day-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 4px;
+  min-height: 54px;
+}
+
+.day-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.day-dow {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .day-num {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--fg);
+  font-size: 28px;
   line-height: 1;
+  font-weight: 700;
+  color: var(--fg);
 }
 
 .day.today .day-num {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--accent);
-  color: var(--bg);
-  border-radius: 50%;
+  color: var(--accent);
 }
 
 .hours-input {
@@ -271,7 +295,7 @@ function getExecutionSecondaryColor(execution: ExecutionWithTask): string {
   font-size: 10px;
   text-align: center;
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 4px;
   color: var(--muted);
   font-family: inherit;

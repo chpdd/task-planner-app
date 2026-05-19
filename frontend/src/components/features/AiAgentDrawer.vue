@@ -20,7 +20,7 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
 // History & Conversations
 const conversations = ref<any[]>([])
-const currentConversationId = ref<number | null>(null)
+const currentConversationId = ref<number | null>(uiStore.selectedAiConversationId)
 const isHistoryOpen = ref(false)
 
 const activeConversationTitle = computed(() => {
@@ -31,6 +31,9 @@ const activeConversationTitle = computed(() => {
 
 onMounted(() => {
   loadConversations()
+  if (currentConversationId.value && uiStore.isAiDrawerOpen) {
+    selectConversation(currentConversationId.value)
+  }
 })
 
 async function loadConversations() {
@@ -43,6 +46,7 @@ async function loadConversations() {
 
 async function selectConversation(id: number | null) {
   currentConversationId.value = id
+  uiStore.selectedAiConversationId = id
   isHistoryOpen.value = false
   messages.value = []
   
@@ -311,7 +315,7 @@ function renderMarkdown(content: string) {
   width: min(620px, 52vw);
   height: 100vh;
   background: var(--surface);
-  border-left: 1px solid var(--border);
+  border-left: 3px solid var(--border);
   z-index: 41;
   display: flex;
   flex-direction: column;
@@ -324,7 +328,7 @@ function renderMarkdown(content: string) {
 /* Header */
 .agent-head {
   height: 64px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--border);
   padding: 0 16px;
   display: flex;
   align-items: center;
@@ -379,7 +383,7 @@ function renderMarkdown(content: string) {
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 8px;
   color: var(--muted);
   cursor: pointer;
@@ -421,7 +425,7 @@ function renderMarkdown(content: string) {
   left: 0;
   right: 0;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--border);
   max-height: 300px;
   overflow-y: auto;
   z-index: 50;
@@ -528,7 +532,7 @@ function renderMarkdown(content: string) {
 .agent-message-assistant {
   align-self: flex-start;
   background: var(--surface-hover);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   color: var(--fg);
   border-bottom-left-radius: 4px;
 }
@@ -564,7 +568,7 @@ function renderMarkdown(content: string) {
 
 /* Input wrap */
 .agent-input-wrap {
-  border-top: 1px solid var(--border);
+  border-top: 3px solid var(--border);
   padding: 16px;
   background: var(--surface);
 }
@@ -579,7 +583,7 @@ function renderMarkdown(content: string) {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   background: var(--bg);
   color: var(--muted);
   display: inline-flex;
@@ -597,7 +601,7 @@ function renderMarkdown(content: string) {
   max-height: 200px;
   resize: none;
   border-radius: 16px;
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   background: var(--bg);
   color: var(--fg);
   padding: 11px 14px;

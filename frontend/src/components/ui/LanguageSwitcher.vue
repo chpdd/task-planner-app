@@ -32,7 +32,7 @@ function toggleLocale() {
   gap: 6px;
   padding: 6px 12px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 999px;
   color: var(--muted);
   cursor: pointer;

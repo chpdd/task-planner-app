@@ -29,7 +29,7 @@ defineEmits<{
   min-height: 90px;
   background: var(--bg);
   color: var(--fg);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   padding: 10px;
   font: inherit;

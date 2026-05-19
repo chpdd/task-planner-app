@@ -220,7 +220,7 @@ async function handleSubmit() {
 .login-card {
   width: min(430px, calc(100vw - 30px));
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   padding: 22px;
   display: flex;

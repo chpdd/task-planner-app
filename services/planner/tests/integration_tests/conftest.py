@@ -1,11 +1,14 @@
-import pytest
-from unittest.mock import AsyncMock
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.pool import NullPool
+import asyncio
 from pathlib import Path
-from alembic.config import Config
+from unittest.mock import AsyncMock
+
+import pytest
 from alembic import command
+from alembic.config import Config
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from src.core.dependencies import get_db, get_redis_client
 from src.main import app
@@ -31,11 +34,19 @@ def apply_migrations():
     base_dir = Path("/app")
     alembic_ini_path = base_dir / "alembic.ini"
     alembic_cfg = Config(str(alembic_ini_path))
+
+    async def reset_test_schema() -> None:
+        async with engine.begin() as conn:
+            await conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+            await conn.execute(text("CREATE SCHEMA public"))
+            await conn.execute(text("GRANT ALL ON SCHEMA public TO admin"))
+            await conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
+
+    asyncio.run(reset_test_schema())
     try:
         command.upgrade(alembic_cfg, "head")
     except Exception:
-        # When DB schema is already present (e.g. repeated local runs), align version table.
-        command.stamp(alembic_cfg, "head")
+        raise
     yield
     try:
         command.downgrade(alembic_cfg, "base")

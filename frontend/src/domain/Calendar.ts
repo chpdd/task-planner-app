@@ -17,11 +17,11 @@ export class Allocation {
 export class Calendar {
   readonly id: number;
   readonly name: string;
-  readonly createdAt: Date;
+  readonly createdAt: Date | null;
 
   constructor(data: ApiCalendar) {
     this.id = data.id;
     this.name = data.name;
-    this.createdAt = new Date(data.created_at);
+    this.createdAt = data.created_at ? new Date(data.created_at) : null;
   }
 }

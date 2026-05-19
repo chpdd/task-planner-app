@@ -10,6 +10,8 @@ const props = defineProps<{
   username?: string
   viewType?: 'tasks' | 'calendar'
   selectedDate?: Date | null
+  selectedRangeStart?: Date | null
+  selectedRangeEnd?: Date | null
 }>()
 
 const emit = defineEmits<{
@@ -82,25 +84,26 @@ function handleDateSelect(date: Date) {
 
       <!-- Calendar View Sidebar -->
       <div v-else-if="viewType === 'calendar' || route.path === '/calendar' || route.path === '/schedule'" class="sidebar-section">
-        <button class="create-btn orange" @click="handleCreateCalendar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          {{ t('calendar.createTitle') }}
-        </button>
-        
+        <div class="mini-calendar-section">
+          <MiniCalendar
+            :selected-date="selectedDate"
+            :selected-range-start="selectedRangeStart"
+            :selected-range-end="selectedRangeEnd"
+            @date-select="handleDateSelect"
+          />
+          <button class="create-btn orange" @click="handleCreateCalendar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            {{ t('calendar.createTitle') }}
+          </button>
+        </div>
+
         <div class="hierarchy-section">
           <CalendarHierarchy
             @create-allocation="handleCreateAllocation"
             @create-calendar="handleCreateCalendar"
-          />
-        </div>
-
-        <div class="mini-calendar-section">
-          <MiniCalendar
-            :selected-date="selectedDate"
-            @date-select="handleDateSelect"
           />
         </div>
       </div>
@@ -140,7 +143,7 @@ function handleDateSelect(date: Date) {
   width: 236px;
   height: 100vh;
   background: var(--surface);
-  border-right: 1px solid var(--border);
+  border-right: 3px solid var(--border);
   padding: 16px;
 }
 
@@ -188,9 +191,10 @@ function handleDateSelect(date: Date) {
 }
 
 .mini-calendar-section {
-  margin-top: auto;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .create-btn {
@@ -200,7 +204,7 @@ function handleDateSelect(date: Date) {
   gap: 8px;
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-hover);
   color: var(--fg);
@@ -225,7 +229,7 @@ function handleDateSelect(date: Date) {
 .user-chip {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--border);
+  border-top: 3px solid var(--border);
 }
 
 .user-chip-btn {
@@ -274,7 +278,7 @@ function handleDateSelect(date: Date) {
   right: 0;
   margin-bottom: 4px;
   background: var(--surface-elevated, var(--surface));
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);

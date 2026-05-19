@@ -8,6 +8,7 @@
     "back": "Back",
     "next": "Next",
     "create": "Create",
+    "select": "Select",
     "retry": "Retry",
     "loading": "Loading...",
     "success": "Success",
@@ -70,13 +71,17 @@
     "duplicateName": "Task with this name already exists"
   },
   "calendar": {
+    "view": "View",
+    "list": "List",
     "day": "Day",
+    "threeDays": "3 days",
+    "workWeek": "Work week",
     "week": "Week",
     "month": "Month",
-    "distributions": "Distributions",
-    "create": "Create Distribution",
+    "allocations": "Allocations",
+    "create": "Create Allocation",
     "createTitle": "Create Calendar",
-    "edit": "Edit Distribution",
+    "edit": "Edit Allocation",
     "hours": "Hours",
     "today": "Today",
     "dropTask": "Drop task here",
@@ -84,8 +89,8 @@
     "nextPeriod": "Next period",
     "name": "Calendar Name",
     "namePlaceholder": "My Plan",
-    "selectAllocation": "Select Distribution",
-    "selectAllocationHint": "Select a distribution from the list",
+    "selectAllocation": "Select Allocation",
+    "selectAllocationHint": "Select an allocation from the list",
     "workHours": "Work Hours",
     "clickToEdit": "Click to edit",
     "markDone": "Mark as done",
@@ -110,31 +115,21 @@
       "saturday": "Saturday"
     },
     "empty": "No calendars created",
+    "noTasks": "No tasks",
     "emptyHint": "Create your first calendar"
   },
   "allocation": {
-    "create": "Create Distribution",
+    "title": "Allocation",
+    "create": "Create Allocation",
     "createAndApply": "Create and Apply",
     "name": "Name",
-    "namePlaceholder": "e.g. {name}",
-    "defaultName": "Distribution",
+    "namePlaceholder": "e.g. May Plan",
+    "defaultName": "Allocation",
     "type": "Type",
     "typeSelect": "Select type",
     "createError": "Error creating",
     "applyError": "Error applying",
-    "empty": "No distributions",
-    "types": {
-      "even": "Even",
-      "priority": "By priority",
-      "compact": "Compact"
-    }
-  },
-  "distribution": {
-    "title": "Distribution",
-    "name": "Name (optional)",
-    "namePlaceholder": "e.g. May Plan",
-    "type": "Type",
-    "typeSelect": "Select type",
+    "empty": "No allocations",
     "dayLimits": "Day limits (optional)",
     "dayLimitsHint": "Set max hours for specific days",
     "addLimit": "Add limit",
@@ -143,6 +138,8 @@
     "limitsCount": "{count} limits",
     "types": {
       "even": "Even",
+      "priority": "By priority",
+      "compact": "Compact",
       "frontloaded": "Frontloaded",
       "backloaded": "Backloaded"
     }

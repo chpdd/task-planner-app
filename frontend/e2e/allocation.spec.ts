@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-test.describe('Distribution', () => {
+test.describe('Allocation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login')
     await page.waitForLoadState('networkidle')

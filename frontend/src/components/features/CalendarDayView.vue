@@ -33,28 +33,19 @@ const emit = defineEmits<{
 const editingHoursId = ref<number | null>(null)
 const editingHoursValue = ref<number>(0)
 
-const dayNames = [
-  'calendar.fullDayNames.sunday',
-  'calendar.fullDayNames.monday',
-  'calendar.fullDayNames.tuesday',
-  'calendar.fullDayNames.wednesday',
-  'calendar.fullDayNames.thursday',
-  'calendar.fullDayNames.friday',
-  'calendar.fullDayNames.saturday',
-]
-const monthNames = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+const dayNamesShort = [
+  'calendar.dayNames.sun',
+  'calendar.dayNames.mon',
+  'calendar.dayNames.tue',
+  'calendar.dayNames.wed',
+  'calendar.dayNames.thu',
+  'calendar.dayNames.fri',
+  'calendar.dayNames.sat',
 ]
 
-function getDayName(): string {
+function getDayLabel(): string {
   if (!props.dayData) return ''
-  return t(dayNames[props.dayData.date.getDay()])
-}
-
-function getDateString(): string {
-  if (!props.dayData) return ''
-  return `${monthNames[props.dayData.date.getMonth()]} ${props.dayData.date.getDate()}`
+  return t(dayNamesShort[props.dayData.date.getDay()])
 }
 
 function getTotalHours(): number {
@@ -119,8 +110,10 @@ function getImportanceColor(importance: number): string {
     <!-- Day header -->
     <div class="day-view-head">
       <div class="head-left">
-        <span class="day-name">{{ getDayName() }}</span>
-        <span class="day-date">{{ getDateString() }}</span>
+        <div class="date-badge">
+          <span class="day-name">{{ getDayLabel() }}</span>
+          <span class="day-date">{{ dayData?.date.getDate() || '' }}</span>
+        </div>
       </div>
       <div class="head-right">
         <input
@@ -294,14 +287,13 @@ function getImportanceColor(importance: number): string {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--border);
   background: var(--bg);
 }
 
 .head-left {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
 }
 
 .head-right {
@@ -310,15 +302,27 @@ function getImportanceColor(importance: number): string {
   gap: 12px;
 }
 
+.date-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 48px;
+  padding: 4px 0;
+}
+
 .day-name {
-  font-size: 20px;
+  font-size: 24px;
+  line-height: 1;
   font-weight: 600;
-  color: var(--fg);
+  color: var(--muted);
 }
 
 .day-date {
-  font-size: 14px;
-  color: var(--muted);
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--fg);
 }
 
 .work-hours-input {
@@ -327,7 +331,7 @@ function getImportanceColor(importance: number): string {
   font-size: 12px;
   text-align: center;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 6px;
   color: var(--fg);
   font-family: inherit;
@@ -366,7 +370,7 @@ function getImportanceColor(importance: number): string {
   position: relative;
   display: flex;
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   padding: 14px 14px 14px 22px;
   cursor: pointer;
@@ -443,7 +447,7 @@ function getImportanceColor(importance: number): string {
   width: 20px;
   height: 20px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 4px;
   transition: background-color 0.15s, border-color 0.15s;
 }
@@ -477,7 +481,7 @@ function getImportanceColor(importance: number): string {
   font-weight: 500;
   border-radius: 999px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   color: var(--muted);
   white-space: nowrap;
 }
@@ -496,7 +500,7 @@ function getImportanceColor(importance: number): string {
   gap: 8px;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid var(--border);
+  border-top: 3px solid var(--border);
 }
 
 .hours-label {
@@ -510,7 +514,7 @@ function getImportanceColor(importance: number): string {
   font-weight: 500;
   color: var(--fg);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s;

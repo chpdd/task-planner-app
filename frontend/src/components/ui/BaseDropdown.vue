@@ -52,7 +52,7 @@ withDefaults(defineProps<Props>(), {
 .base-dropdown-content {
   min-width: 160px;
   background: var(--surface, #2a2b2a) !important;
-  border: 1px solid var(--border, #3d3e3d);
+  border: 3px solid var(--border, #3d3e3d);
   border-radius: var(--radius, 8px);
   padding: 4px;
   z-index: 9999 !important;

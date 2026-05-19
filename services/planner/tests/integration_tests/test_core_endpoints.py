@@ -39,7 +39,7 @@ async def endpoint_calendar(db_session, endpoint_user):
 async def test_allocations_create_and_list_endpoints(client, db_session, endpoint_user, endpoint_calendar):
     response = await client.post(
         f"/api/planner/allocations?calendar_id={endpoint_calendar.id}",
-        json={"name": "Primary Allocation", "type": "even"},
+        json={"name": "Primary Allocation", "type": "points_allocation"},
         headers=auth_headers(endpoint_user.id),
     )
     assert response.status_code == 200
@@ -60,7 +60,7 @@ async def test_allocations_create_and_list_endpoints(client, db_session, endpoin
 async def test_failed_tasks_list_by_allocation_endpoint(client, db_session, endpoint_user, endpoint_calendar):
     allocation_resp = await client.post(
         f"/api/planner/allocations?calendar_id={endpoint_calendar.id}",
-        json={"name": "Allocation For Failures", "type": "priority"},
+        json={"name": "Allocation For Failures", "type": "importance"},
         headers=auth_headers(endpoint_user.id),
     )
     assert allocation_resp.status_code == 200
@@ -139,15 +139,21 @@ async def test_allocation_types_endpoint(client, endpoint_user):
     )
     assert response.status_code == 200
     payload = response.json()
-    assert len(payload) == 3
-    assert {item["code"] for item in payload} == {"even", "priority", "compact"}
+    assert len(payload) == 5
+    assert {item["code"] for item in payload} == {
+        "interest",
+        "importance",
+        "interest_importance",
+        "points_allocation",
+        "force_procrastinate",
+    }
 
 
 @pytest.mark.asyncio
 async def test_calendars_with_allocations_hierarchy(client, endpoint_user, endpoint_calendar):
     create_resp = await client.post(
         f"/api/planner/allocations?calendar_id={endpoint_calendar.id}",
-        json={"name": "Hierarchy Allocation", "type": "even"},
+        json={"name": "Hierarchy Allocation", "type": "points_allocation"},
         headers=auth_headers(endpoint_user.id),
     )
     assert create_resp.status_code == 200
@@ -182,7 +188,7 @@ async def test_create_and_apply_allocation_endpoint(client, endpoint_user, endpo
         f"/api/planner/allocations/create_and_apply?calendar_id={endpoint_calendar.id}",
         json={
             "name": "Auto Apply Allocation",
-            "type": "priority",
+            "type": "importance",
             "start_date": "2026-05-20",
         },
         headers=auth_headers(endpoint_user.id),

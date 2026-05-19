@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import { api } from '@/api/client';
 import { Calendar, Allocation } from '@/domain/Calendar';
@@ -7,22 +7,40 @@ import type { CreateAllocationData } from '@/types/api';
 import { useToast } from '@/composables/useToast';
 
 const CALENDARS_QUERY_KEY = ['calendars'] as const;
-const ALLOCATIONS_QUERY_KEY = ['allocations'] as const;
+const ALLOCATIONS_QUERY_KEY = ['allocations', 'calendar'] as const;
+const CALENDAR_STORAGE_KEY = 'planner_calendar_state_v1';
+
+function loadState(): {
+  selectedCalendarId?: number | null;
+  expandedCalendarId?: number | null;
+  selectedAllocationId?: number | null;
+  selectedAllocationCalendarId?: number | null;
+} {
+  try {
+    const raw = localStorage.getItem(CALENDAR_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
 
 export const useCalendarsStore = defineStore('calendars', () => {
+  const initial = loadState();
   const { success } = useToast();
   const queryClient = useQueryClient();
 
-  const selectedCalendarId = ref<number | null>(null);
+  const selectedCalendarId = ref<number | null>(initial.selectedCalendarId ?? null);
+  const expandedCalendarId = ref<number | null>(initial.expandedCalendarId ?? null); // Для аккордеона
   const selectedAllocation = ref<Allocation | null>(null);
-  const selectedAllocationId = ref<number | null>(null);
+  const selectedAllocationId = ref<number | null>(initial.selectedAllocationId ?? null);
+  const selectedAllocationCalendarId = ref<number | null>(initial.selectedAllocationCalendarId ?? null);
 
   // Queries
   const useCalendarsQuery = () =>
     useQuery({
       queryKey: CALENDARS_QUERY_KEY,
       queryFn: async () => {
-        const data = await api.calendars.list();
+        const data = await api.calendars.listWithAllocations();
         return data.map(c => new Calendar(c));
       },
       staleTime: 1000 * 60,
@@ -38,6 +56,15 @@ export const useCalendarsStore = defineStore('calendars', () => {
       enabled: !!calendarId,
       staleTime: 1000 * 60,
     });
+
+  // Вспомогательная функция для аккордеона
+  function toggleCalendar(id: number) {
+    if (expandedCalendarId.value === id) {
+      expandedCalendarId.value = null; // Сворачиваем, если уже открыт
+    } else {
+      expandedCalendarId.value = id; // Разворачиваем новый
+    }
+  }
 
   // Mutations
   const useCreateCalendarMutation = () =>
@@ -75,6 +102,7 @@ export const useCalendarsStore = defineStore('calendars', () => {
       mutationFn: ({ calendarId, name, type }: { calendarId: number; name: string; type: string }) =>
         api.calendars.createAllocation(calendarId, { name, type: type as CreateAllocationData['type'] }),
       onSuccess: (_data, variables) => {
+        queryClient.invalidateQueries({ queryKey: CALENDARS_QUERY_KEY });
         queryClient.invalidateQueries({ queryKey: [...ALLOCATIONS_QUERY_KEY, variables.calendarId] });
         success('Allocation created successfully');
       },
@@ -84,7 +112,10 @@ export const useCalendarsStore = defineStore('calendars', () => {
     useMutation({
       mutationFn: ({ id, name }: { id: number; name: string }) => api.allocations.update(id, { name }),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ALLOCATIONS_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: CALENDARS_QUERY_KEY });
+        if (selectedAllocationId.value) {
+          queryClient.invalidateQueries({ queryKey: [...ALLOCATIONS_QUERY_KEY] });
+        }
         success('Allocation updated successfully');
       },
     });
@@ -93,7 +124,8 @@ export const useCalendarsStore = defineStore('calendars', () => {
     useMutation({
       mutationFn: (id: number) => api.allocations.delete(id),
       onSuccess: (_data, id) => {
-        queryClient.invalidateQueries({ queryKey: ALLOCATIONS_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: CALENDARS_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: [...ALLOCATIONS_QUERY_KEY] });
         if (selectedAllocationId.value === id) {
           selectedAllocationId.value = null;
           selectedAllocation.value = null;
@@ -117,12 +149,32 @@ export const useCalendarsStore = defineStore('calendars', () => {
   function selectAllocation(allocation: Allocation | null): void {
     selectedAllocation.value = allocation;
     selectedAllocationId.value = allocation ? allocation.id : null;
+    selectedAllocationCalendarId.value = allocation ? allocation.calendarId : null;
   }
+
+  watch(
+    [selectedCalendarId, expandedCalendarId, selectedAllocationId, selectedAllocationCalendarId],
+    () => {
+      localStorage.setItem(
+        CALENDAR_STORAGE_KEY,
+        JSON.stringify({
+          selectedCalendarId: selectedCalendarId.value,
+          expandedCalendarId: expandedCalendarId.value,
+          selectedAllocationId: selectedAllocationId.value,
+          selectedAllocationCalendarId: selectedAllocationCalendarId.value,
+        }),
+      );
+    },
+    { deep: false },
+  );
 
   return {
     selectedCalendarId,
+    expandedCalendarId,
+    toggleCalendar,
     selectedAllocationId,
     selectedAllocation,
+    selectedAllocationCalendarId,
     useCalendarsQuery,
     useAllocationsQuery,
     useCreateCalendarMutation,

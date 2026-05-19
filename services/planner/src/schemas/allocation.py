@@ -1,10 +1,16 @@
 import datetime as dt
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
 from src.core.config import BaseSchema
-from src.models.allocation import AllocationType
+AllocationTypeCode = Literal[
+    "interest",
+    "importance",
+    "interest_importance",
+    "points_allocation",
+    "force_procrastinate",
+]
 
 if TYPE_CHECKING:
     from src.schemas.task import TaskSchema
@@ -12,20 +18,20 @@ if TYPE_CHECKING:
 
 class AllocationCreateSchema(BaseSchema):
     name: str = Field(max_length=128)
-    type: AllocationType = AllocationType.EVEN
+    type: AllocationTypeCode = "points_allocation"
     day_limits: dict | None = Field(default=None)
 
 
 class AllocationUpdateSchema(BaseSchema):
     name: str | None = Field(max_length=128)
-    type: AllocationType | None = None
+    type: AllocationTypeCode | None = None
     day_limits: dict | None = None
 
 
 class AllocationSchema(BaseSchema):
     id: int
     name: str
-    type: AllocationType
+    type: AllocationTypeCode
     day_limits: dict | None
     calendar_id: int
     created_at: dt.datetime
@@ -42,7 +48,7 @@ class AllocationApplyResultSchema(BaseSchema):
 
 
 class AllocationTypeSchema(BaseSchema):
-    code: AllocationType
+    code: AllocationTypeCode
     name: str
 
 

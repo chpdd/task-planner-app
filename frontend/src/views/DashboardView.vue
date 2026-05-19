@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppShell from '@/components/layout/AppShell.vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import TaskModal from '@/components/features/TaskModal.vue'
 import AiAgentDrawer from '@/components/features/AiAgentDrawer.vue'
-import MiniMonthCalendar from '@/components/features/MiniMonthCalendar.vue'
 import DashboardTaskList from '@/components/features/DashboardTaskList.vue'
 import DashboardWeekCalendar from '@/components/features/DashboardWeekCalendar.vue'
-import CalendarHierarchy from '@/components/features/CalendarHierarchy.vue'
 import CreateCalendarModal from '@/components/features/CreateCalendarModal.vue'
 import CreateAllocationModal from '@/components/features/CreateAllocationModal.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
@@ -19,14 +16,25 @@ import { useTasksStore } from '@/stores/tasksStore'
 import { Task } from '@/domain/Task'
 import type { CreateTaskData } from '@/types/api'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const uiStore = useUiStore()
 const tasksStore = useTasksStore()
+const localeTag = computed(() => (locale.value === 'ru' ? 'ru-RU' : 'en-US'))
 
-const router = useRouter()
+function formatLocalDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function parseLocalDate(value: string): Date {
+  const [y, m, d] = value.split('-').map(Number)
+  return new Date(y, (m ?? 1) - 1, d ?? 1)
+}
 
 // Tab state
-const activeTab = ref<'tasks' | 'calendar'>('tasks')
+const activeTab = ref<'tasks' | 'calendar'>(uiStore.activeTab)
 
 // Tasks logic
 const { data: tasks, isLoading, error, refetch } = tasksStore.useTasksQuery()
@@ -76,6 +84,81 @@ function handleCreateAllocationRequest(calendarId: number) {
   calendarIdForNewAllocation.value = calendarId
   showCreateAllocationModal.value = true
 }
+
+watch(activeTab, (value) => {
+  uiStore.activeTab = value
+})
+
+const selectedDate = computed(() => parseLocalDate(uiStore.calendarFocusDate))
+const selectedWeekStart = computed(() => {
+  const d = new Date(selectedDate.value)
+  const dayOfWeek = d.getDay()
+  const mondayOffset = (dayOfWeek + 6) % 7
+  d.setDate(d.getDate() - mondayOffset)
+  d.setHours(0, 0, 0, 0)
+  return d
+})
+
+const calendarRange = computed(() => {
+  const base = parseLocalDate(uiStore.calendarFocusDate)
+  base.setHours(0, 0, 0, 0)
+  let start = new Date(base)
+  let end = new Date(base)
+  const view = uiStore.calendarView
+
+  if (view === 'week' || view === 'work_week') {
+    start = new Date(selectedWeekStart.value)
+    end = new Date(start)
+    end.setDate(start.getDate() + (view === 'work_week' ? 4 : 6))
+  } else if (view === 'three_days') {
+    end = new Date(start)
+    end.setDate(start.getDate() + 2)
+  } else if (view === 'month') {
+    start = new Date(base.getFullYear(), base.getMonth(), 1)
+    end = new Date(base.getFullYear(), base.getMonth() + 1, 0)
+  }
+
+  return { start, end }
+})
+
+const calendarPeriodLabel = computed(() => {
+  const { start, end } = calendarRange.value
+  if (uiStore.calendarView === 'day') {
+    return start.toLocaleDateString(localeTag.value, { weekday: 'short', day: '2-digit', month: 'short' })
+  }
+  if (uiStore.calendarView === 'month') {
+    return start.toLocaleDateString(localeTag.value, { month: 'long', year: 'numeric' })
+  }
+  return `${start.toLocaleDateString(localeTag.value, { day: '2-digit', month: 'short' })} - ${end.toLocaleDateString(localeTag.value, { day: '2-digit', month: 'short' })}`
+})
+
+function handleDateSelect(date: Date) {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  uiStore.calendarFocusDate = formatLocalDate(d)
+}
+
+function handleWeekFocusChange(date: Date) {
+  handleDateSelect(date)
+}
+
+function handlePrevPeriod() {
+  const d = parseLocalDate(uiStore.calendarFocusDate)
+  if (uiStore.calendarView === 'day') d.setDate(d.getDate() - 1)
+  else if (uiStore.calendarView === 'three_days') d.setDate(d.getDate() - 3)
+  else if (uiStore.calendarView === 'month') d.setMonth(d.getMonth() - 1)
+  else d.setDate(d.getDate() - 7)
+  uiStore.calendarFocusDate = formatLocalDate(d)
+}
+
+function handleNextPeriod() {
+  const d = parseLocalDate(uiStore.calendarFocusDate)
+  if (uiStore.calendarView === 'day') d.setDate(d.getDate() + 1)
+  else if (uiStore.calendarView === 'three_days') d.setDate(d.getDate() + 3)
+  else if (uiStore.calendarView === 'month') d.setMonth(d.getMonth() + 1)
+  else d.setDate(d.getDate() + 7)
+  uiStore.calendarFocusDate = formatLocalDate(d)
+}
 </script>
 
 <template>
@@ -83,9 +166,13 @@ function handleCreateAllocationRequest(calendarId: number) {
     <template #sidebar>
       <Sidebar
         :view-type="activeTab"
+        :selected-date="selectedDate"
+        :selected-range-start="calendarRange.start"
+        :selected-range-end="calendarRange.end"
         @create-task="editingTask = null; uiStore.isTaskModalOpen = true"
         @create-calendar="handleCreateCalendarRequest"
         @create-allocation="handleCreateAllocationRequest"
+        @date-select="handleDateSelect"
       />
     </template>
 
@@ -129,7 +216,14 @@ function handleCreateAllocationRequest(calendarId: number) {
       @retry="refetch"
     />
 
-    <DashboardWeekCalendar v-else />
+    <DashboardWeekCalendar
+      v-else
+      :focus-date="selectedDate"
+      :period-label="calendarPeriodLabel"
+      @focus-date-change="handleWeekFocusChange"
+      @prev-period="handlePrevPeriod"
+      @next-period="handleNextPeriod"
+    />
   </AppShell>
 
   <TaskModal
@@ -163,7 +257,7 @@ function handleCreateAllocationRequest(calendarId: number) {
 <style scoped>
 .top-bar {
   height: 64px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -174,7 +268,7 @@ function handleCreateAllocationRequest(calendarId: number) {
 .tabs {
   display: inline-flex;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 999px;
   padding: 4px;
 }
@@ -241,7 +335,7 @@ function handleCreateAllocationRequest(calendarId: number) {
   gap: 8px;
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-hover);
   color: var(--fg);
@@ -271,6 +365,6 @@ function handleCreateAllocationRequest(calendarId: number) {
 
 .mini-calendar-section {
   padding-top: 16px;
-  border-top: 1px solid var(--border);
+  border-top: 3px solid var(--border);
 }
 </style>

@@ -60,7 +60,7 @@ defineProps<{
   gap: var(--spacing-3, 0.75rem);
   padding: var(--spacing-4, 1rem);
   background: var(--surface, oklch(20% 0.024 252));
-  border: 1px solid var(--border, oklch(35% 0.018 240));
+  border: 3px solid var(--border, oklch(35% 0.018 240));
   border-radius: var(--radius, 10px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   pointer-events: auto;

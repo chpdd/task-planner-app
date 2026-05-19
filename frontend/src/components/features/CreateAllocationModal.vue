@@ -1,15 +1,38 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import { api } from '@/api/client'
 import { useCalendarsStore } from '@/stores/calendarsStore'
 import type { AllocationType } from '@/types/api'
 
 const { t } = useI18n()
 const calendarsStore = useCalendarsStore()
+
+const typeOptions = ref<{ value: string; label: string }[]>([])
+
+onMounted(async () => {
+  try {
+    const types = await api.allocations.getTypes()
+    typeOptions.value = types.map((t: any) => ({
+      value: t.code,
+      label: t.name
+    }))
+  } catch (e) {
+    console.error('Failed to load allocation types', e)
+    // Fallback if API fails
+    typeOptions.value = [
+      { value: 'interest', label: 'По интересу' },
+      { value: 'importance', label: 'По важности' },
+      { value: 'interest_importance', label: 'Интерес + важность' },
+      { value: 'points_allocation', label: 'Балльное' },
+      { value: 'force_procrastinate', label: 'Принудительная прокрастинация' },
+    ]
+  }
+})
 
 const props = defineProps<{
   open: boolean
@@ -21,15 +44,9 @@ const emit = defineEmits<{
   created: [allocationId: number]
 }>()
 
-const typeOptions = computed(() => [
-  { value: 'even', label: t('allocation.types.even') },
-  { value: 'priority', label: t('allocation.types.priority') },
-  { value: 'compact', label: t('allocation.types.compact') },
-])
-
 const form = ref({
   name: '',
-  type: 'even' as AllocationType,
+  type: 'points_allocation' as AllocationType,
 })
 
 const errorMessage = ref('')
@@ -56,7 +73,7 @@ function handleCancel() {
 function resetForm() {
   form.value = {
     name: '',
-    type: 'even',
+    type: 'points_allocation',
   }
   errorMessage.value = ''
 }
@@ -91,7 +108,11 @@ function handleCreateAndApply() {
            resetForm()
         }
       },
-      onError: () => {
+      onError: (error: unknown) => {
+        if (error instanceof Error && error.message) {
+          errorMessage.value = error.message
+          return
+        }
         errorMessage.value = t('allocation.createError')
       }
     }

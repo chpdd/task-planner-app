@@ -2,13 +2,13 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppShell from '@/components/layout/AppShell.vue'
-import CalendarHierarchy from '@/components/features/CalendarHierarchy.vue'
+import Sidebar from '@/components/layout/Sidebar.vue'
 import CalendarViewSwitch from '@/components/features/CalendarViewSwitch.vue'
 import CalendarNav from '@/components/features/CalendarNav.vue'
 import CalendarMonthView from '@/components/features/CalendarMonthView.vue'
 import CalendarWeekView from '@/components/features/CalendarWeekView.vue'
 import CalendarDayView from '@/components/features/CalendarDayView.vue'
-import MiniCalendar from '@/components/features/MiniCalendar.vue'
+import CalendarListView from '@/components/features/CalendarListView.vue'
 import CreateCalendarModal from '@/components/features/CreateCalendarModal.vue'
 import CreateAllocationModal from '@/components/features/CreateAllocationModal.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -16,21 +16,36 @@ import { useCalendarsStore } from '@/stores/calendarsStore'
 import { useDaysStore } from '@/stores/daysStore'
 import { useTaskExecutionsStore } from '@/stores/taskExecutionsStore'
 import { useTasksStore } from '@/stores/tasksStore'
+import { useUiStore } from '@/stores/uiStore'
 import { Task } from '@/domain/Task'
 
 import type { UpdateExecutionData } from '@/types/api'
 
-type CalendarViewType = 'day' | 'week' | 'month'
+type CalendarViewType = 'day' | 'three_days' | 'work_week' | 'week' | 'month'
+
+function formatLocalDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function parseLocalDate(value: string): Date {
+  const [y, m, d] = value.split('-').map(Number)
+  return new Date(y, (m ?? 1) - 1, d ?? 1)
+}
 
 const { t } = useI18n()
 const calendarsStore = useCalendarsStore()
 const daysStore = useDaysStore()
 const executionsStore = useTaskExecutionsStore()
 const tasksStore = useTasksStore()
+const uiStore = useUiStore()
 
 // View state
-const currentView = ref<CalendarViewType>('week')
-const calendarOffset = ref(0)
+const currentView = ref<CalendarViewType>(uiStore.calendarView)
+const focusDate = ref(parseLocalDate(uiStore.calendarFocusDate))
+const listMode = ref(uiStore.calendarListMode)
 
 // Modals state
 const showCreateCalendarModal = ref(false)
@@ -53,13 +68,23 @@ const selectedAllocationId = computed(() => calendarsStore.selectedAllocationId)
 const selectedAllocation = computed(() => calendarsStore.selectedAllocation)
 
 // Calculate date range based on view and offset
-function getDateRange(offset: number, view: CalendarViewType): { startDate: string; endDate: string } {
-  const today = new Date()
+function startOfWeek(base: Date): Date {
+  const d = new Date(base)
+  const dayOfWeek = d.getDay()
+  const mondayOffset = (dayOfWeek + 6) % 7
+  d.setDate(d.getDate() - mondayOffset)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function getDateRange(baseDate: Date, view: CalendarViewType): { startDate: string; endDate: string } {
+  const base = new Date(baseDate)
+  base.setHours(0, 0, 0, 0)
   let startDate: Date
   let endDate: Date
 
   if (view === 'month') {
-    const targetMonth = new Date(today.getFullYear(), today.getMonth() + offset, 1)
+    const targetMonth = new Date(base.getFullYear(), base.getMonth(), 1)
     startDate = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1)
     const dayOfWeek = startDate.getDay()
     startDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1 - ((dayOfWeek + 6) % 7))
@@ -67,15 +92,19 @@ function getDateRange(offset: number, view: CalendarViewType): { startDate: stri
     const endDayOfWeek = endDate.getDay()
     endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + (6 - endDayOfWeek + 7) % 7)
   } else if (view === 'week') {
-    const dayOfWeek = today.getDay()
-    const mondayOffset = (dayOfWeek + 6) % 7
-    startDate = new Date(today)
-    startDate.setDate(today.getDate() - mondayOffset + offset * 7)
+    startDate = startOfWeek(base)
     endDate = new Date(startDate)
     endDate.setDate(startDate.getDate() + 6)
+  } else if (view === 'work_week') {
+    startDate = startOfWeek(base)
+    endDate = new Date(startDate)
+    endDate.setDate(startDate.getDate() + 4)
+  } else if (view === 'three_days') {
+    startDate = new Date(base)
+    endDate = new Date(startDate)
+    endDate.setDate(startDate.getDate() + 2)
   } else {
-    startDate = new Date(today)
-    startDate.setDate(today.getDate() + offset)
+    startDate = new Date(base)
     endDate = new Date(startDate)
   }
 
@@ -85,8 +114,10 @@ function getDateRange(offset: number, view: CalendarViewType): { startDate: stri
   }
 }
 
-const dateRange = computed(() => getDateRange(calendarOffset.value, currentView.value))
-const activeCalendarId = computed(() => selectedAllocation.value?.calendarId || null)
+const dateRange = computed(() => getDateRange(focusDate.value, currentView.value))
+const activeCalendarId = computed(
+  () => selectedAllocation.value?.calendarId || calendarsStore.selectedAllocationCalendarId || null,
+)
 
 const startDateRef = computed(() => dateRange.value.startDate)
 const endDateRef = computed(() => dateRange.value.endDate)
@@ -114,7 +145,7 @@ const periodLabel = computed(() => {
 
   if (currentView.value === 'day') {
     return start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-  } else if (currentView.value === 'week') {
+  } else if (currentView.value === 'week' || currentView.value === 'work_week' || currentView.value === 'three_days') {
     return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
   } else {
     return start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -140,45 +171,52 @@ const calendarData = computed(() => {
 
 // Navigation handlers
 function handlePrev() {
-  calendarOffset.value -= 1
+  const d = new Date(focusDate.value)
+  if (currentView.value === 'day') d.setDate(d.getDate() - 1)
+  if (currentView.value === 'week' || currentView.value === 'work_week' || currentView.value === 'three_days') d.setDate(d.getDate() - 7)
+  if (currentView.value === 'month') d.setMonth(d.getMonth() - 1)
+  focusDate.value = d
+  uiStore.calendarFocusDate = formatLocalDate(d)
 }
 
 function handleNext() {
-  calendarOffset.value += 1
+  const d = new Date(focusDate.value)
+  if (currentView.value === 'day') d.setDate(d.getDate() + 1)
+  if (currentView.value === 'week' || currentView.value === 'work_week' || currentView.value === 'three_days') d.setDate(d.getDate() + 7)
+  if (currentView.value === 'month') d.setMonth(d.getMonth() + 1)
+  focusDate.value = d
+  uiStore.calendarFocusDate = formatLocalDate(d)
 }
 
 function handleViewChange(view: CalendarViewType) {
   currentView.value = view
-  calendarOffset.value = 0
+  uiStore.calendarView = view
+}
+
+function handleListModeChange(value: boolean) {
+  listMode.value = value
+  uiStore.calendarListMode = value
 }
 
 // Convert selected date from mini calendar to offset
 function handleDateSelect(date: Date) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
   const selected = new Date(date)
   selected.setHours(0, 0, 0, 0)
-
-  const diffTime = selected.getTime() - today.getTime()
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24))
-
-  if (currentView.value === 'day') {
-    calendarOffset.value = diffDays
-  } else if (currentView.value === 'week') {
-    // Convert to week offset (7 days = 1 week)
-    calendarOffset.value = Math.round(diffDays / 7)
-  } else {
-    // Month view - calculate month difference
-    const yearDiff = selected.getFullYear() - today.getFullYear()
-    const monthDiff = selected.getMonth() - today.getMonth()
-    calendarOffset.value = yearDiff * 12 + monthDiff
-  }
+  focusDate.value = selected
+  uiStore.calendarFocusDate = formatLocalDate(selected)
 }
 
 // Get selected date for mini calendar display
 const selectedDate = computed(() => {
-  const { startDate } = dateRange.value
-  return new Date(startDate + 'T00:00:00')
+  return new Date(focusDate.value)
+})
+
+const selectedRange = computed(() => {
+  const { startDate, endDate } = dateRange.value
+  return {
+    start: new Date(`${startDate}T00:00:00`),
+    end: new Date(`${endDate}T00:00:00`),
+  }
 })
 
 // Update execution (is_done toggle or doing_hours change)
@@ -220,9 +258,14 @@ const isLoading = computed(() => isLoadingDays.value || isLoadingExecutions.valu
       <Sidebar
         view-type="calendar"
         :selected-date="selectedDate"
+        :selected-range-start="selectedRange.start"
+        :selected-range-end="selectedRange.end"
+        :calendar-period-label="periodLabel"
         @create-calendar="handleCreateCalendar"
         @create-allocation="handleCreateAllocation"
         @date-select="handleDateSelect"
+        @prev-period="handlePrev"
+        @next-period="handleNext"
       />
     </template>
 
@@ -231,19 +274,17 @@ const isLoading = computed(() => isLoadingDays.value || isLoadingExecutions.valu
         <div class="header-left">
           <CalendarViewSwitch
             :model-value="currentView"
+            :list-mode="listMode"
             @update:model-value="handleViewChange"
+            @update:list-mode="handleListModeChange"
           />
         </div>
-
         <CalendarNav
           :period="periodLabel"
-          :offset="calendarOffset"
+          :offset="0"
           @prev="handlePrev"
           @next="handleNext"
         />
-
-        <div class="header-right">
-        </div>
       </div>
     </template>
 
@@ -273,15 +314,20 @@ const isLoading = computed(() => isLoadingDays.value || isLoadingExecutions.valu
             v-else
             class="calendar-content"
           >
+            <CalendarListView
+              v-if="listMode"
+              :list-data="calendarData"
+            />
+
             <CalendarMonthView
-              v-if="currentView === 'month'"
+              v-else-if="currentView === 'month'"
               :month-data="calendarData"
               @work-hours-change="handleWorkHoursUpdate"
               @execution-click="(exec) => handleExecutionUpdate(exec.id, { is_done: !exec.is_done })"
             />
 
             <CalendarWeekView
-              v-else-if="currentView === 'week'"
+              v-else-if="currentView === 'week' || currentView === 'work_week' || currentView === 'three_days'"
               :week-data="calendarData"
               @work-hours-change="handleWorkHoursUpdate"
               @execution-click="(exec) => handleExecutionUpdate(exec.id, { is_done: !exec.is_done })"
@@ -332,18 +378,17 @@ const isLoading = computed(() => isLoadingDays.value || isLoadingExecutions.valu
 .calendar-header-wrapper {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 0 8px 16px;
-  gap: 24px;
-  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  border-bottom: 3px solid var(--border);
 }
 
 .mini-calendar-container {
   padding: 16px 24px;
 }
 
-.header-left,
-.header-right {
+.header-left {
   display: flex;
   align-items: center;
   gap: 12px;
